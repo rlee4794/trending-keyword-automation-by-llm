@@ -1,0 +1,24 @@
+{
+  "google": {
+    "actor_id": "data_xplorer/google-trends-trending-now",
+    "dataset_key": "defaultDatasetId",
+    "result_format": "dataset_items"
+  },
+  "instagram": {
+    "actor_id": "breathtaking_anthem/instagram-hashtag-posts-scraper",
+    "dataset_key": "defaultDatasetId",
+    "result_format": "dataset_items"
+  },
+  "phase2": {
+    "rednote": {
+      "actor_id": "zen-studio/rednote-search-scraper",
+      "dataset_key": "defaultDatasetId",
+      "result_format": "dataset_items"
+    },
+    "tiktok": {
+      "actor_id": "clockworks/free-tiktok-scraper",
+      "dataset_key": "defaultDatasetId",
+      "result_format": "dataset_items"
+    }
+  }
+}

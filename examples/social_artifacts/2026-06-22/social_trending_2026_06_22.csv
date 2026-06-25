@@ -1,0 +1,4 @@
+canonical_key,representative_social_term,google_current_volume,google_prev_volume,google_velocity,google_pass_trending,google_pass_new,instagram_current_volume,instagram_prev_volume,instagram_velocity,instagram_pass_trending,instagram_pass_new,social_platform_hits,social_composite_score,social_rank,week_start,week_end,run_at
+壽喜燒,sukiyaki,78,42,0.8571,true,false,1240,680,0.8235,true,false,2,0.9120,1,2026-06-15T09:00:00+08:00,2026-06-22T09:00:00+08:00,2026-06-22T09:00:00+08:00
+omakase,omakase,61,28,1.1786,true,false,940,510,0.8431,true,false,2,0.8980,2,2026-06-15T09:00:00+08:00,2026-06-22T09:00:00+08:00,2026-06-22T09:00:00+08:00
+冷麵,#冷麵,,,false,false,89,35,1.5429,true,false,1,0.6250,3,2026-06-15T09:00:00+08:00,2026-06-22T09:00:00+08:00,2026-06-22T09:00:00+08:00
