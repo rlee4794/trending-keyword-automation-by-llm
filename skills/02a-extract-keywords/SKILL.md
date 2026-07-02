@@ -12,7 +12,7 @@ description: >
 
 ## Purpose
 
-Instagram raw data contains `caption_snippet` text (~200 chars) per post.
+Instagram raw data contains `caption_snippet` text (~500 chars) per post.
 The raw `raw_term` is the search hashtag (e.g. `#hkfood`), not the actual
 content keywords. This step reads each caption and extracts the real F&B
 concepts mentioned — dish names, cuisines, ingredients, food trends — so
@@ -224,11 +224,11 @@ print(f'Total keywords extracted: {total_kw}')
 
 | Item | Estimate |
 |---|---|
-| 100 captions (~200 chars each) | ~20K chars input |
+| 100 captions (~500 chars each) | ~50K chars input |
 | Extraction prompt + instructions | ~2K chars |
 | JSON response (100 × avg 5 keywords) | ~5K chars output |
-| **Per batch** | **~27K tokens** |
-| **8 batches total** | **~220K tokens** |
+| **Per batch** | **~57K tokens** |
+| **8 batches total** | **~460K tokens** |
 
 ---
 

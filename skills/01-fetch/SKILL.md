@@ -80,7 +80,7 @@ Both files share the same top-level structure:
 
 | Field | Source (Apify raw) | Notes |
 |---|---|---|
-| `caption_snippet` | `caption` | Truncated to 200 chars |
+| `caption_snippet` | `caption` | Truncated to 500 chars |
 | `hashtags` | `hashtags` | Array of hashtag strings |
 | `likes` | `like_count` | Default 0 |
 | `comments` | `comment_count` | Default 0 |
@@ -246,7 +246,7 @@ Writes:
 Behavior:
 - Compute window = target_date ±1 day (single-day snapshot window)
 - Google: map term→raw_term, trend_volume_raw→current_volume
-- Instagram: merge 4 hashtag files, map caption→caption_snippet (200 chars),
+- Instagram: merge 4 hashtag files, map caption→caption_snippet (500 chars),
   compute engagement_hint, set current_volume=1 per post
 - Preserve original Apify data in raw_payload
 - Skip platforms whose _apify raw files are missing/empty

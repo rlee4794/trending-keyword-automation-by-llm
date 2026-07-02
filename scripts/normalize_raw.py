@@ -122,7 +122,7 @@ def _normalise_instagram_posts(
                 "hashtags": item.get("hashtags", []),
                 "url": item.get("url"),
                 "reshare_count": item.get("reshare_count"),
-                "caption_snippet": caption[:200] if caption else "",
+                "caption_snippet": caption[:500] if caption else "",
             },
         })
     return records
