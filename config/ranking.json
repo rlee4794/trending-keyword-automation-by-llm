@@ -1,0 +1,18 @@
+{
+  "platform_weights": {
+    "instagram": 0.6,
+    "google": 0.4
+  },
+  "dual_platform_bonus": 0.1,
+  "composite_score_threshold": 0.10,
+  "trend_direction": {
+    "surging": {
+      "min_absolute_delta": 0.1,
+      "min_relative_delta": 0.3
+    },
+    "declining": {
+      "min_absolute_delta": 0.05,
+      "min_relative_delta": 0.2
+    }
+  }
+}

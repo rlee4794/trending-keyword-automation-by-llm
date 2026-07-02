@@ -1,0 +1,9 @@
+{
+  "method": "log_normalize",
+  "log_base": "e",
+  "engagement_weights": {
+    "likes": 1,
+    "comments": 2,
+    "shares": 4
+  }
+}
