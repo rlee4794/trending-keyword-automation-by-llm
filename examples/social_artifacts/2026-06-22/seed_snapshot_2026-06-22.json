@@ -1,9 +1,0 @@
-{
-  "snapshot_id": "seed_snapshot_2026-06-22",
-  "run_at": "2026-06-22T09:00:00+08:00",
-  "timezone": "Asia/Hong_Kong",
-  "broad_seed_group": "hk_food_drink_v1",
-  "google_trends_seeds": ["香港美食", "hk food", "omakase", "壽喜燒"],
-  "instagram_seeds": ["#hkfood", "#hkfoodie", "#香港美食", "#相機食先"],
-  "expansion_terms": ["sukiyaki", "omakase", "冷麵", "旺角cafe"]
-}
