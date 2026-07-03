@@ -37,7 +37,34 @@ Before choosing an action, mentally simplify each term:
 or decorated phrase for an EXISTING canonical key. Set `target_canonical_key` to
 the existing key.
 
-Examples:
+MERGE only when the term and target canonical key are TRUE SYNONYMS
+(translations, spelling variants, abbreviations, district-qualified phrases,
+or decorated phrases of the SAME concept).
+
+⚠️ Semantic hierarchy check — before MERGE, verify the relationship:
+
+1. If the term is a BROADER concept than the target canonical key
+   → DO NOT MERGE. CREATE a new key instead.
+   Example: "韓國菜" is broader than "korean-bbq" (韓燒只是韓國菜的一種)
+            → CREATE korean-food, don't MERGE into korean-bbq
+   Example: "粵菜" is broader than "cantonese-restaurant" (粵式酒樓只是粵菜的一種)
+            → CREATE cantonese-food, don't MERGE
+
+2. If the term is a NARROWER concept than the target canonical key
+   → DO NOT MERGE. CREATE a new key instead.
+   Example: "拌麵" is narrower than "noodles" (拌麵是具體菜式，麵食是泛稱)
+            → CREATE lo-mein, don't MERGE into noodles
+   Example: "豚丼" is narrower than "donburi" (豚丼是丼飯的一種但本身是獨立菜式)
+            → CREATE butadon, don't MERGE into donburi
+
+3. If the term and target are DIFFERENT concepts entirely
+   → DO NOT MERGE. CREATE a new key (or DISCARD if noise).
+   Example: "海膽" (ingredient) ≠ "uni-pasta" (pasta dish)
+            → CREATE sea-urchin, don't MERGE into uni-pasta
+   Example: "咖啡" (beverage) ≠ "coffee-shop" (venue type)
+            → CREATE coffee, don't MERGE into coffee-shop
+
+Examples of VALID MERGE (true synonyms):
 - "旺角cafe" → MERGE target_canonical_key="coffee-shop"
 - "尖沙咀cafe" → MERGE target_canonical_key="coffee-shop"
 - "火鍋配料" → MERGE target_canonical_key="hotpot"
