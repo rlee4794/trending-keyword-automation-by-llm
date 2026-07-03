@@ -82,6 +82,21 @@ def _load_engagement_weights(config_path: Path) -> dict[str, int]:
     return cfg.get("engagement_weights", defaults)
 
 
+def _load_popular_post_config(config_path: Path) -> dict | None:
+    """Load popular post boost config, or None if disabled.
+
+    Returns None if config is missing or popular_post.enabled is false.
+    """
+    if not config_path.exists():
+        return None
+    with config_path.open("r", encoding="utf-8") as f:
+        cfg = json.load(f)
+    pp = cfg.get("popular_post", {})
+    if not pp.get("enabled", False):
+        return None
+    return pp
+
+
 def _compute_post_engagement(
     likes: int, comments: int, shares: int, weights: dict[str, int]
 ) -> float:
@@ -154,6 +169,16 @@ def run(date_str: str, skip_unmatched: bool = False) -> None:
     # Load engagement weights
     weights = _load_engagement_weights(ig_config_path)
     print(f"Engagement weights: {weights}", file=sys.stderr)
+
+    # Load popular post config (optional boost)
+    popular_cfg = _load_popular_post_config(ig_config_path)
+    if popular_cfg:
+        pop_thresholds = popular_cfg.get("thresholds", {})
+        pop_mult = popular_cfg.get("weight_multiplier", 1.0)
+        print(f"Popular post boost: likes>{pop_thresholds.get('likes')} AND shares>{pop_thresholds.get('shares')} → ×{pop_mult}", file=sys.stderr)
+    else:
+        pop_thresholds = {}
+        pop_mult = 1.0
 
     # ── data structures ──────────────────────────────────────────────
 
@@ -240,7 +265,15 @@ def run(date_str: str, skip_unmatched: bool = False) -> None:
 
             # Compute per-post engagement
             post_eng = _compute_post_engagement(likes, comments, shares, weights)
-            eng_detail = {"likes": likes, "comments": comments, "shares": shares}
+
+            # Popular post boost: if post exceeds thresholds, apply weight multiplier
+            likes_threshold = pop_thresholds.get("likes", 0)
+            shares_threshold = pop_thresholds.get("shares", 0)
+            is_popular = (likes > likes_threshold) and (shares > shares_threshold)
+            if is_popular:
+                post_eng *= pop_mult
+
+            eng_detail = {"likes": likes, "comments": comments, "shares": shares, "popular": is_popular}
 
             # Track which canonical keys this post contributes to
             post_matched_keys: set[str] = set()

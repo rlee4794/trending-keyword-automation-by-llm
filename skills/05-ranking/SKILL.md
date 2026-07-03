@@ -161,6 +161,15 @@ post_engagement = ln(w_likes × likes + 1)
                 + ln(w_shares × shares + 1)
 ```
 
+**Popular post boost** (applied in Step 3, configured in `instagram_scoring.json`):
+posts where `likes > threshold_likes` AND `shares > threshold_shares` get their
+`post_engagement` multiplied by `weight_multiplier` (default 2.0×). This rewards
+viral content without discarding non-viral signal.
+
+The boosted `post_engagement` is already reflected in `engagement_raw` by the
+time Step 5 reads `matched_groups.json`. Each `engagement_detail` includes a
+`popular` boolean flag for traceability.
+
 Total keyword engagement = sum of `post_engagement` across all posts
 matching that canonical key **within this window**.
 

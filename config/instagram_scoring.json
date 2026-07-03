@@ -5,5 +5,13 @@
     "likes": 1,
     "comments": 2,
     "shares": 4
+  },
+  "popular_post": {
+    "enabled": true,
+    "thresholds": {
+      "likes": 1000,
+      "shares": 500
+    },
+    "weight_multiplier": 2.0
   }
 }

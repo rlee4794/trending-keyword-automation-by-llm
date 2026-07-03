@@ -117,14 +117,16 @@ cd PROJECT_ROOT && python3 scripts/exact_match.py --date "$TARGET_DATE"
 This script:
 1. Reads `canonical_mapping.csv` into a `{match_value → canonical_key}` lookup table
 2. Reads `google_filtered.json` and `instagram_filtered.json`
-3. Extracts candidate terms:
+3. Loads engagement weights and popular post boost config from `config/instagram_scoring.json`
+4. Extracts candidate terms:
    - **Google:** `raw_term` field from each record
    - **Instagram:** `terms` field from each record (supports both `{"text":"...", "source":"keyword|hashtag"}` objects and legacy plain strings)
-4. Cleans each term: strip leading `#`, lowercase, trim whitespace
-5. Looks up cleaned term in the lookup table **per term** (not per record)
+5. Cleans each term: strip leading `#`, lowercase, trim whitespace
+6. Looks up cleaned term in the lookup table **per term** (not per record)
    - Matched → group by `canonical_key`, sum `current_volume`, compute `engagement_raw` + `engagement_details` (Instagram), track `matched_terms`
    - Unmatched → write to `unmatched_review_queue.csv` with `review_status = pending`
-6. Writes `matched_groups.json` (with engagement data and matched_terms) and `unmatched_review_queue.csv`
+7. **Popular post boost**: posts with `likes > threshold_likes` AND `shares > threshold_shares` (from `instagram_scoring.json`) have their engagement score multiplied by `weight_multiplier`. This rewards viral content without discarding non-viral signal.
+8. Writes `matched_groups.json` (with engagement data, matched_terms, and `popular` flag on each engagement_detail) and `unmatched_review_queue.csv`
 
 ### 3. Verify Output
 
