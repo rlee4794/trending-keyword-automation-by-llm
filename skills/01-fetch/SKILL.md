@@ -73,7 +73,7 @@ Both files share the same top-level structure:
 |---|---|---|
 | `raw_term` | search hashtag (e.g. `#hkfood`) | The hashtag used for this scrape |
 | `source_kind` | fixed: `"hashtag"` | |
-| `current_volume` | fixed: `1` | One post = one unit; aggregated by ranking |
+| `current_volume` | fixed: `1` per **unique** post | Each post is counted once across all days; posts whose URL has been seen in the previous 6 days are excluded (see Cross-Day Dedup below) |
 | `raw_payload` | transformed Apify item | See fields below |
 
 `raw_payload` for Instagram:
@@ -89,6 +89,25 @@ Both files share the same top-level structure:
 | `taken_at_timestamp` | `taken_at_timestamp` | |
 | `url` | `url` | |
 | `reshare_count` | `reshare_count` | |
+
+### Cross-Day Dedup (Instagram)
+
+Instagram Apify actors fetch **top posts** per hashtag, not a time-based
+sample. A viral post can appear in multiple days' top-N results, inflating
+volume and engagement if counted each day.
+
+During normalization, `normalize_raw.py` performs **cross-day dedup by post URL**:
+it loads all `url` values from the previous 6 days' `instagram_raw.json` files
+and excludes any post whose URL has already been seen.
+
+This means:
+- Each post appears in exactly one day's `instagram_raw.json` (its first)
+- `current_volume = 1` reflects a unique post, not a duplicate
+- Downstream steps (2A, 2B, 3, 5) all receive deduped data automatically
+- Week-over-week delta in Step 5 reflects genuine change, not sampling overlap
+
+The `instagram_raw.json` output includes a `_dedup` metadata block recording
+how many posts were skipped and how many seen URLs were checked.
 
 ## Project Paths
 
@@ -238,6 +257,7 @@ python3 "${SCRIPTS}/normalize_raw.py" \
 Reads:
   runs/{date}/raw/_apify/google_apify_raw.json
   runs/{date}/raw/_apify/ig_*.json
+  runs/{T-6}…{T-1}/raw/instagram_raw.json (previous 6 days, for cross-day dedup)
   config/social_listening_v1.json (for broad_seed_group metadata)
 
 Writes:
@@ -249,6 +269,9 @@ Behavior:
 - Google: map term→raw_term, trend_volume_raw→current_volume
 - Instagram: merge 4 hashtag files, map caption→caption_snippet (500 chars),
   compute engagement_hint, set current_volume=1 per post
+- Cross-day dedup (Instagram): load all URLs from previous 6 days'
+  instagram_raw.json; exclude today's posts whose URL has already been seen.
+  Each post is counted only on its first appearance.
 - Preserve original Apify data in raw_payload
 - Skip platforms whose _apify raw files are missing/empty
 ```
@@ -320,5 +343,6 @@ and verifies results.
 - **External:** Apify API (requires `APIFY_TOKEN` env var)
 - **Scripts:** `scripts/apify_fetch.sh`, `scripts/normalize_raw.py`
 - **Config:** `config/apify_actors_v1.json`, `config/social_listening_v1.json`
+- **Input (for dedup):** `runs/{T-6}…{T-1}/raw/instagram_raw.json` (6 previous days; best-effort, skipped if missing)
 - **Output to Step 2A:** `runs/YYYY-MM-DD/raw/instagram_raw.json`
 - **Output to Step 2B:** `runs/YYYY-MM-DD/raw/google_raw.json`

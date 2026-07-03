@@ -19,7 +19,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from glob import glob
 from pathlib import Path
 from typing import Any
@@ -30,6 +30,37 @@ from typing import Any
 # ---------------------------------------------------------------------------
 
 HKT = timezone(timedelta(hours=8))
+
+
+def _load_seen_urls(run_dir: Path, lookback_days: int = 6) -> set[str]:
+    """Collect all post URLs from previous N days' instagram_raw.json.
+
+    Reads raw Instagram data from previous days to build a dedup set.
+    A post that appeared in a previous day's top-N scrape should not
+    be counted again in today's output — it contributes no volume and
+    no engagement for the current day.
+
+    Missing or malformed files are silently skipped (fail-open).
+    """
+    seen: set[str] = set()
+    run_date = date.fromisoformat(run_dir.name)
+
+    for i in range(1, lookback_days + 1):
+        prev_date = run_date - timedelta(days=i)
+        prev_raw = Path(f"runs/{prev_date.isoformat()}/raw/instagram_raw.json")
+        if not prev_raw.exists():
+            continue
+        try:
+            with prev_raw.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+            for rec in data.get("records", []):
+                url = (rec.get("raw_payload") or {}).get("url", "")
+                if url:
+                    seen.add(url)
+        except (json.JSONDecodeError, OSError):
+            continue
+
+    return seen
 
 
 def _engagement_tier(likes: int, comments: int) -> str:
@@ -176,10 +207,18 @@ def main() -> None:
     else:
         print("google: SKIPPED (no _apify data)")
 
-    # --- Instagram (merge all hashtag files) ---
+    # --- Instagram (merge all hashtag files, with cross-day dedup) ---
     ig_files = sorted(glob(str(apify_dir / "ig_*_apify_raw.json")))
     if ig_files:
+        # Load seen URLs from previous 6 days for cross-day dedup.
+        # A post that already appeared in a previous day's top-N scrape
+        # is excluded from today's output — it contributes zero volume
+        # and zero engagement for the current day.
+        seen_urls = _load_seen_urls(run_dir, lookback_days=6)
+        print(f"instagram: {len(seen_urls)} seen URLs from previous days", file=sys.stderr)
+
         all_records: list[dict[str, Any]] = []
+        dedup_skipped = 0
         for ig_file in ig_files:
             with open(ig_file, encoding="utf-8") as f:
                 ig_raw_items = json.load(f)
@@ -188,7 +227,16 @@ def main() -> None:
             # Extract hashtag from filename: ig_<hashtag>_apify_raw.json
             stem = Path(ig_file).stem  # ig_hkfood_apify_raw
             hashtag = stem.replace("ig_", "").replace("_apify_raw", "")
-            all_records.extend(_normalise_instagram_posts(ig_raw_items, hashtag))
+            records = _normalise_instagram_posts(ig_raw_items, hashtag)
+            # Cross-day dedup: skip posts whose URL was already seen
+            for rec in records:
+                url = (rec.get("raw_payload") or {}).get("url", "")
+                if url and url in seen_urls:
+                    dedup_skipped += 1
+                    continue
+                all_records.append(rec)
+
+        total_before = len(all_records) + dedup_skipped
 
         instagram_output = {
             "platform": "instagram",
@@ -205,13 +253,18 @@ def main() -> None:
                 "broad_seed_group": broad_seed_group,
             },
             "records": all_records,
+            "_dedup": {
+                "lookback_days": 6,
+                "seen_urls_count": len(seen_urls),
+                "skipped": dedup_skipped,
+            },
         }
         ig_out_path = run_dir / "raw" / "instagram_raw.json"
         ig_out_path.parent.mkdir(parents=True, exist_ok=True)
         ig_out_path.write_text(
             json.dumps(instagram_output, ensure_ascii=False, indent=2), encoding="utf-8"
         )
-        print(f"instagram: {len(all_records)} records (from {len(ig_files)} hashtag files)")
+        print(f"instagram: {len(all_records)} records kept, {dedup_skipped} dedup-skipped (from {total_before} total)")
     else:
         print("instagram: SKIPPED (no _apify data)")
 
