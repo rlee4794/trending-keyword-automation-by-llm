@@ -169,7 +169,8 @@ bash "${SCRIPTS}/apify_fetch.sh" \
 # Instagram (4 hashtags, parallel)
 for seed in $INSTAGRAM_SEEDS; do
   hashtag="${seed#\#}"  # strip leading #
-  safe_name=$(echo "$hashtag" | tr -c 'a-zA-Z0-9_' '_')
+  # Use md5 prefix to avoid filename collision on CJK-only hashtags
+  safe_name=$(echo "$hashtag" | python3 -c "import sys,hashlib; h=sys.stdin.read().strip(); print(hashlib.md5(h.encode()).hexdigest()[:8] + '_' + ''.join(c if c.isalnum() else '_' for c in h))")
   # Merge hashtag into actor input template
   ig_input=$(echo "$INSTAGRAM_INPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); d['hashtag']='${hashtag}'; print(json.dumps(d))")
   bash "${SCRIPTS}/apify_fetch.sh" \

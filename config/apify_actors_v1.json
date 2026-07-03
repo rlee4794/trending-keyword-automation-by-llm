@@ -7,7 +7,11 @@
   "instagram": {
     "actor_id": "breathtaking_anthem~instagram-hashtag-posts-scraper",
     "dataset_key": "defaultDatasetId",
-    "result_format": "dataset_items"
+    "result_format": "dataset_items",
+    "input": {
+      "hashtag": "",
+      "maxItems": 200
+    }
   },
   "phase2": {
     "rednote": {
