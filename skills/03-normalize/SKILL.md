@@ -46,6 +46,7 @@ This step is **purely deterministic** — zero LLM tokens.
     "display_name": "Sukiyaki",
     "enriched_description": "Japanese hot pot with thinly sliced beef, common in HK放題 restaurants",
     "category": "fnb",
+    "potential": "high",
     "platforms": {
       "google": {"current_volume": 1000, "record_count": 3},
       "instagram": {"current_volume": 45, "record_count": 12, "engagement_raw": 142.5, "engagement_details": [{"likes": 1658, "comments": 35, "shares": 2287}]}
@@ -58,7 +59,7 @@ This step is **purely deterministic** — zero LLM tokens.
 }
 ```
 
-Instagram platform entries include `engagement_raw` (log-normalised weighted sum of likes/comments/shares across all matching posts) and `engagement_details` (per-post breakdown). `matched_terms` tracks which raw surface terms mapped to this canonical key, with source platform and hashtag status — used by Step 5 for raw term selection. `category` is a pass-through from `canonical_mapping.csv` (`fnb` / `poi` / `location` / empty).
+Instagram platform entries include `engagement_raw` (log-normalised weighted sum of likes/comments/shares across all matching posts) and `engagement_details` (per-post breakdown). `matched_terms` tracks which raw surface terms mapped to this canonical key, with source platform and hashtag status — used by Step 5 for raw term selection. `category` and `potential` are pass-throughs from `canonical_mapping.csv`.
 
 ### unmatched_review_queue.csv schema
 

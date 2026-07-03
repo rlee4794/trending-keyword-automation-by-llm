@@ -94,6 +94,14 @@ Also assign a `category` for every CREATE:
 
 If unsure between fnb/poi, prefer fnb for concepts and poi for named venues.
 
+Also assign a `potential` for every CREATE:
+- `high` — specific dish/ingredient/format/landmark that can be pointed to on a menu or map
+  (e.g. 酸辣粉, 杜拜朱古力, 半島酒店, 潮州打冷, 慢煮牛舌, 爆檸)
+- `medium` — restaurant brand/chain name (not a dish, not a landmark)
+  (e.g. 壽司郎, 鮨政, 吉野家)
+- `low` — broad food categories, district names, generic concepts
+  (e.g. 日本菜, 燒肉, 沙田美食, 放題, 甜品)
+
 NEVER CREATE canonical keys for:
 - Brands that are not primarily F&B (Godiva is borderline-F&B → keep; Nike, TCL, Biore, BRUNO → discard)
 - Overly generic terms (香港美食, hkfood, hongkongfood, food, hk, 美食,
@@ -137,7 +145,8 @@ Return ONLY a JSON object with a "decisions" array. No markdown, no explanation.
       "canonical_key": "hot-sour-noodles",
       "display_term": "酸辣粉",
       "enriched_description": "Spicy and sour glass noodle soup, popular HK street food",
-      "category": "fnb"
+      "category": "fnb",
+      "potential": "high"
     },
     {
       "suggested_cleanup_term": "旺角cafe",
@@ -152,7 +161,8 @@ Return ONLY a JSON object with a "decisions" array. No markdown, no explanation.
       "canonical_key": "kau-kee-beef-brisket",
       "display_term": "九記牛腩",
       "enriched_description": "Iconic HK beef brisket noodle shop in Central, frequently trending on social media",
-      "category": "poi"
+      "category": "poi",
+      "potential": "medium"
     },
     {
       "suggested_cleanup_term": "港珠澳大橋",
@@ -185,7 +195,7 @@ Return ONLY a JSON object with a "decisions" array. No markdown, no explanation.
 Rules:
 - `suggested_cleanup_term` must match the input term exactly.
 - `platform` must be `"google"` or `"instagram"`.
-- For CREATE: include `canonical_key`, `display_term`, `enriched_description`, and `category` (one of: `fnb`, `poi`, `location`).
+- For CREATE: include `canonical_key`, `display_term`, `enriched_description`, `category` (one of: `fnb`, `poi`, `location`), and `potential` (one of: `high`, `medium`, `low`).
 - For MERGE: include `target_canonical_key` (must be an existing key from the list above).
 - For DISCARD: include `reason` (short label explaining why).
 - Classify ALL terms. Return ONLY the JSON.

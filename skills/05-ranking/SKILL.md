@@ -63,6 +63,7 @@ to determine true week-over-week trend direction.
       "display_name": "Sukiyaki",
       "raw_term": "Sukiyaki",
       "category": "fnb",
+      "potential": "high",
       "social_composite_score": 0.72,
       "trend_direction": "active",
       "platform_hits": 2,
@@ -385,6 +386,7 @@ for i, date_str in enumerate(ALL_DATES):
         wk['display_name'] = v.get('display_name', ck)
         wk['enriched_description'] = v.get('enriched_description', '')
         wk['category'] = v.get('category', '')
+        wk['potential'] = v.get('potential', '')
 
         # Merge matched_terms
         if 'matched_terms' not in wk:
@@ -498,6 +500,7 @@ for wname in ['current_week', 'previous_week']:
         scores[wname][ck] = {
             'display_name': wk.get('display_name', ck),
             'category': wk.get('category', ''),
+            'potential': wk.get('potential', ''),
             'ig_score': round(ig_score, 4),
             'goog_score': round(goog_score, 4),
             'ig_eng_raw': round(eng_raw, 1),
@@ -660,6 +663,7 @@ keywords = [
         'display_name': 'Sukiyaki',
         'raw_term': 'Sukiyaki',
         'category': 'fnb',
+        'potential': 'high',
         'social_composite_score': 0.7234,
         'trend_direction': 'active',
         'platform_hits': 2,

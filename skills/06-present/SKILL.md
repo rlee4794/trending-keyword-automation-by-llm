@@ -66,7 +66,7 @@ for kw in keywords:
     goog = kw.get('platforms', {}).get('google', {})
     ig_eng = ig.get('engagement_raw')
     goog_vol = goog.get('volume')
-    print(f'KW|{kw.get(\"rank\")}|{kw.get(\"display_name\")}|{kw.get(\"social_composite_score\")}|{kw.get(\"trend_direction\")}|{ig_eng}|{goog_vol}|{kw.get(\"category\", \"\")}')
+    print(f'KW|{kw.get(\"rank\")}|{kw.get(\"display_name\")}|{kw.get(\"social_composite_score\")}|{kw.get(\"trend_direction\")}|{ig_eng}|{goog_vol}|{kw.get(\"category\", \"\")}|{kw.get(\"potential\", \"\")}')
 "
 ```
 
@@ -101,14 +101,24 @@ Show the pipeline throughput if available in `meta`:
 
 #### Ranking Table (Markdown)
 
-Group keywords by `category` and present in sections:
+**🔥 High-Potential Keywords** (`potential = "high"`)
 
-**🍽️ F&B Concepts** (`category = "fnb"` or empty)
+Show these first — they are specific, interesting signals worth paying attention to.
 
 | # | Keyword | Score | Direction | IG Eng. | Google Vol. |
 |---|---------|-------|-----------|---------|-------------|
-| 1 | Sukiyaki | 0.72 | active | 142.5 | 62 |
-| 2 | Omakase | 0.65 | new | 98.3 | 0 |
+| 5 | 壽喜燒 | 0.55 | surging | 210.3 | 62 |
+| 12 | 酸辣粉 | 0.48 | active | 142.5 | 0 |
+| ... | ... | ... | ... | ... | ... |
+
+Then group remaining keywords by `category`:
+
+**🍽️ F&B Concepts** (`category = "fnb"` or empty, `potential != "high"`)
+
+| # | Keyword | Score | Direction | IG Eng. | Google Vol. |
+|---|---------|-------|-----------|---------|-------------|
+| 1 | Cafe | 0.72 | active | 142.5 | 62 |
+| 2 | 日本菜 | 0.65 | new | 98.3 | 0 |
 | ... | ... | ... | ... | ... | ... |
 
 **📍 Restaurants & Venues** (`category = "poi"`)
@@ -122,7 +132,7 @@ Group keywords by `category` and present in sections:
 
 | # | Keyword | Score | Direction | IG Eng. | Google Vol. |
 |---|---------|-------|-----------|---------|-------------|
-| 1 | 蘭桂坊 | 0.42 | active | 55.1 | 30 |
+| 1 | 諾士佛臺 | 0.42 | active | 55.1 | 30 |
 | ... | ... | ... | ... | ... | ... |
 
 If a category section has no keywords, skip it.

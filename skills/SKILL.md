@@ -63,7 +63,7 @@ runs/YYYY-MM-DD/
 
 | Path | Purpose |
 |---|---|
-| `data/mappings/canonical_mapping.csv` | Core mapping table (5 columns: canonical_key, match_value, display_term, enriched_description, category) |
+| `data/mappings/canonical_mapping.csv` | Core mapping table (6 columns: canonical_key, match_value, display_term, enriched_description, category, potential) |
 | `config/apify_actors_v1.json` | Apify actor IDs and input templates |
 | `config/instagram_scoring.json` | IG engagement weights and scoring params |
 | `config/google_scoring.json` | Google volume scoring params |

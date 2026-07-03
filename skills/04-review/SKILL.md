@@ -67,8 +67,8 @@ All paths are relative to the project root.
 ### batch_NNN_decisions.csv schema
 
 ```csv
-suggested_cleanup_term,platform,action,canonical_key,display_term,enriched_description,category,target_canonical_key,reason
-酸辣粉,google,CREATE,hot-sour-noodles,酸辣粉,"Spicy and sour glass noodle soup...",fnb,,
+suggested_cleanup_term,platform,action,canonical_key,display_term,enriched_description,category,potential,target_canonical_key,reason
+酸辣粉,google,CREATE,hot-sour-noodles,酸辣粉,"Spicy and sour glass noodle soup...",fnb,high,,
 旺角cafe,instagram,MERGE,,,,,coffee-shop,
 肯德基,google,DISCARD,,,,,,restaurant chain
 ```
@@ -269,7 +269,7 @@ out_path = f'runs/YYYY-MM-DD/batch_decisions/batch_{batch_num:03d}_decisions.csv
 
 fieldnames = [
     'suggested_cleanup_term', 'platform', 'action',
-    'canonical_key', 'display_term', 'enriched_description', 'category',
+    'canonical_key', 'display_term', 'enriched_description', 'category', 'potential',
     'target_canonical_key', 'reason'
 ]
 
@@ -285,6 +285,7 @@ with open(out_path, 'w', newline='') as f:
             'display_term': d.get('display_term', ''),
             'enriched_description': d.get('enriched_description', ''),
             'category': d.get('category', ''),
+            'potential': d.get('potential', ''),
             'target_canonical_key': d.get('target_canonical_key', ''),
             'reason': d.get('reason', ''),
         }
@@ -445,7 +446,7 @@ with MAPPING.open() as f:
         if mv:
             existing_matches.add(mv)
         if ck and ck not in existing_keys:
-            existing_keys[ck] = {'display_term': dt, 'enriched_description': desc, 'category': cat}
+            existing_keys[ck] = {'display_term': dt, 'enriched_description': desc, 'category': cat, 'potential': (row.get('potential') or '').strip()}
 
 # Collect all decisions
 decisions = []
@@ -462,7 +463,7 @@ if content and not content.endswith('\n'):
 # Append new mappings
 added = 0
 with MAPPING.open('a', newline='') as f:
-    w = csv.DictWriter(f, fieldnames=['canonical_key', 'match_value', 'display_term', 'enriched_description', 'category'])
+    w = csv.DictWriter(f, fieldnames=['canonical_key', 'match_value', 'display_term', 'enriched_description', 'category', 'potential'])
     for d in decisions:
         action = (d.get('action') or '').upper()
         match_value = (d.get('suggested_cleanup_term') or '').strip()
@@ -481,6 +482,7 @@ with MAPPING.open('a', newline='') as f:
                 'display_term': display_term,
                 'enriched_description': enriched_description,
                 'category': (d.get('category') or '').strip(),
+                'potential': (d.get('potential') or '').strip(),
             })
             existing_matches.add(match_value)
             added += 1
@@ -496,6 +498,7 @@ with MAPPING.open('a', newline='') as f:
                 'display_term': ek['display_term'],
                 'enriched_description': ek.get('enriched_description', ''),
                 'category': ek.get('category', ''),
+                'potential': ek.get('potential', ''),
             })
             existing_matches.add(match_value)
             added += 1
