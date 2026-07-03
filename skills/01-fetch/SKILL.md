@@ -100,14 +100,27 @@ During normalization, `normalize_raw.py` performs **cross-day dedup by post URL*
 it loads all `url` values from the previous 6 days' `instagram_raw.json` files
 and excludes any post whose URL has already been seen.
 
+### Age Filter (Instagram)
+
+Apify top posts include content spanning months. A post from 8 months ago
+with high engagement can dominate daily results, polluting trend signals.
+
+`normalize_raw.py` accepts `--max-age-days` (default 30): posts with
+`taken_at_timestamp` older than N days before the target date are discarded.
+Posts without a timestamp are kept (fail-open).
+
+The `instagram_raw.json` output includes an `_age_filter` metadata block
+recording the cutoff and how many posts were skipped. Set `--max-age-days 0`
+to disable the filter.
+
 This means:
 - Each post appears in exactly one day's `instagram_raw.json` (its first)
 - `current_volume = 1` reflects a unique post, not a duplicate
-- Downstream steps (2A, 2B, 3, 5) all receive deduped data automatically
+- Posts older than max_age_days are excluded entirely
+- Downstream steps (2A, 2B, 3, 5) all receive deduped + age-filtered data automatically
 - Week-over-week delta in Step 5 reflects genuine change, not sampling overlap
 
-The `instagram_raw.json` output includes a `_dedup` metadata block recording
-how many posts were skipped and how many seen URLs were checked.
+The `instagram_raw.json` output includes `_dedup` and `_age_filter` metadata blocks.
 
 ## Project Paths
 
@@ -272,6 +285,9 @@ Behavior:
 - Cross-day dedup (Instagram): load all URLs from previous 6 days'
   instagram_raw.json; exclude today's posts whose URL has already been seen.
   Each post is counted only on its first appearance.
+- Age filter (Instagram, --max-age-days 30): discard posts with
+  taken_at_timestamp older than N days before the target date.
+  Posts without a timestamp are kept (fail-open).
 - Preserve original Apify data in raw_payload
 - Skip platforms whose _apify raw files are missing/empty
 ```
@@ -346,3 +362,16 @@ and verifies results.
 - **Input (for dedup):** `runs/{T-6}…{T-1}/raw/instagram_raw.json` (6 previous days; best-effort, skipped if missing)
 - **Output to Step 2A:** `runs/YYYY-MM-DD/raw/instagram_raw.json`
 - **Output to Step 2B:** `runs/YYYY-MM-DD/raw/google_raw.json`
+
+### CLI Flags
+
+```bash
+# Default: 30-day age filter enabled
+python3 scripts/normalize_raw.py --date YYYY-MM-DD --run-dir runs/YYYY-MM-DD --config config/social_listening_v1.json
+
+# Disable age filter (keep all posts regardless of age)
+python3 scripts/normalize_raw.py --date YYYY-MM-DD --run-dir runs/YYYY-MM-DD --config config/social_listening_v1.json --max-age-days 0
+
+# Custom age threshold (e.g. 14 days)
+python3 scripts/normalize_raw.py --date YYYY-MM-DD --run-dir runs/YYYY-MM-DD --config config/social_listening_v1.json --max-age-days 14
+```

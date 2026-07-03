@@ -32,6 +32,26 @@ from typing import Any
 HKT = timezone(timedelta(hours=8))
 
 
+def _parse_timestamp(ts: str | None) -> datetime | None:
+    """Parse an ISO-8601 timestamp string, returning a timezone-aware datetime or None."""
+    if not ts:
+        return None
+    try:
+        # Handle Z suffix and +00:00 offset
+        s = ts.strip().replace("Z", "+00:00")
+        return datetime.fromisoformat(s)
+    except (ValueError, TypeError):
+        return None
+
+
+def _is_too_old(taken_at: datetime | None, cutoff: datetime) -> bool:
+    """Return True if the post's taken_at is before the cutoff."""
+    if taken_at is None:
+        # No timestamp → cannot verify age → keep (fail-open)
+        return False
+    return taken_at < cutoff
+
+
 def _load_seen_urls(run_dir: Path, lookback_days: int = 6) -> set[str]:
     """Collect all post URLs from previous N days' instagram_raw.json.
 
@@ -168,11 +188,14 @@ def main() -> None:
     parser.add_argument("--date", required=True, help="Target date (YYYY-MM-DD)")
     parser.add_argument("--run-dir", required=True, help="Run directory (e.g. runs/2026-06-25)")
     parser.add_argument("--config", required=True, help="Path to social_listening_v1.json")
+    parser.add_argument("--max-age-days", type=int, default=30,
+                        help="Discard Instagram posts older than N days (default: 30, 0 = disable)")
     args = parser.parse_args()
 
     run_dir = Path(args.run_dir)
     config_path = Path(args.config)
     target_date = args.date
+    max_age_days = args.max_age_days
 
     # Load config for broad_seed_group
     if not config_path.exists():
@@ -207,9 +230,16 @@ def main() -> None:
     else:
         print("google: SKIPPED (no _apify data)")
 
-    # --- Instagram (merge all hashtag files, with cross-day dedup) ---
+    # --- Instagram (merge all hashtag files, with cross-day dedup + age filter) ---
     ig_files = sorted(glob(str(apify_dir / "ig_*_apify_raw.json")))
     if ig_files:
+        # Compute age cutoff (if max_age_days > 0)
+        age_cutoff = None
+        if max_age_days > 0:
+            scrape_dt = datetime.strptime(target_date, "%Y-%m-%d").replace(tzinfo=HKT)
+            age_cutoff = scrape_dt - timedelta(days=max_age_days)
+            print(f"instagram: age filter enabled, discarding posts older than {age_cutoff.isoformat()}", file=sys.stderr)
+
         # Load seen URLs from previous 6 days for cross-day dedup.
         # A post that already appeared in a previous day's top-N scrape
         # is excluded from today's output — it contributes zero volume
@@ -219,6 +249,7 @@ def main() -> None:
 
         all_records: list[dict[str, Any]] = []
         dedup_skipped = 0
+        age_skipped = 0
         for ig_file in ig_files:
             with open(ig_file, encoding="utf-8") as f:
                 ig_raw_items = json.load(f)
@@ -228,15 +259,24 @@ def main() -> None:
             stem = Path(ig_file).stem  # ig_hkfood_apify_raw
             hashtag = stem.replace("ig_", "").replace("_apify_raw", "")
             records = _normalise_instagram_posts(ig_raw_items, hashtag)
-            # Cross-day dedup: skip posts whose URL was already seen
+            # Age filter + cross-day dedup
             for rec in records:
+                # Age filter: discard posts older than max_age_days
+                if age_cutoff is not None:
+                    taken_at = _parse_timestamp(
+                        (rec.get("raw_payload") or {}).get("taken_at_timestamp")
+                    )
+                    if _is_too_old(taken_at, age_cutoff):
+                        age_skipped += 1
+                        continue
+                # Cross-day dedup: skip posts whose URL was already seen
                 url = (rec.get("raw_payload") or {}).get("url", "")
                 if url and url in seen_urls:
                     dedup_skipped += 1
                     continue
                 all_records.append(rec)
 
-        total_before = len(all_records) + dedup_skipped
+        total_before = len(all_records) + dedup_skipped + age_skipped
 
         instagram_output = {
             "platform": "instagram",
@@ -259,12 +299,19 @@ def main() -> None:
                 "skipped": dedup_skipped,
             },
         }
+        if max_age_days > 0:
+            instagram_output["_age_filter"] = {
+                "max_age_days": max_age_days,
+                "cutoff": age_cutoff.isoformat() if age_cutoff else None,
+                "skipped": age_skipped,
+            }
         ig_out_path = run_dir / "raw" / "instagram_raw.json"
         ig_out_path.parent.mkdir(parents=True, exist_ok=True)
         ig_out_path.write_text(
             json.dumps(instagram_output, ensure_ascii=False, indent=2), encoding="utf-8"
         )
-        print(f"instagram: {len(all_records)} records kept, {dedup_skipped} dedup-skipped (from {total_before} total)")
+        age_msg = f", {age_skipped} age-skipped" if age_skipped > 0 else ""
+        print(f"instagram: {len(all_records)} records kept, {dedup_skipped} dedup-skipped{age_msg} (from {total_before} total)")
     else:
         print("instagram: SKIPPED (no _apify data)")
 
