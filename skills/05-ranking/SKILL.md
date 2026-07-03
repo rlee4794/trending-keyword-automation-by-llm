@@ -61,7 +61,7 @@ to determine true week-over-week trend direction.
     {
       "canonical_key": "sukiyaki",
       "display_name": "Sukiyaki",
-      "representative_term": "Sukiyaki",
+      "raw_term": "Sukiyaki",
       "category": "fnb",
       "social_composite_score": 0.72,
       "trend_direction": "active",
@@ -267,7 +267,7 @@ Example: IG=new + Google=active → `new` (because new > active).
 Example: IG=surging + Google=declining → `surging`.
 All platforms `insufficient_data` → `insufficient_data`.
 
-### Representative Term
+### Raw Term
 
 Select the best surface term from the merged `matched_terms` across the
 **current week** window.
@@ -604,7 +604,7 @@ Each line:
 canonical_key|display_name|ig_score|goog_score|composite|platform_hits|trend_direction|ig_dir|goog_dir|ig_eng_raw|goog_vol|prev_ig_score|prev_goog_score|ig_post_count
 ```
 
-### 6. Select Representative Term
+### 6. Select Raw Term
 
 For each canonical key, inspect `matched_terms` from the current-week scores.
 Apply selection rules:
@@ -658,7 +658,7 @@ keywords = [
     {
         'canonical_key': 'sukiyaki',
         'display_name': 'Sukiyaki',
-        'representative_term': 'Sukiyaki',
+        'raw_term': 'Sukiyaki',
         'category': 'fnb',
         'social_composite_score': 0.7234,
         'trend_direction': 'active',
@@ -745,7 +745,7 @@ if keywords:
     print()
     print('Top 5:')
     for kw in keywords[:5]:
-        print(f'  #{kw[\"rank\"]} {kw[\"display_name\"]:20s} score={kw[\"social_composite_score\"]:.4f} dir={kw[\"trend_direction\"]:15s} term={kw[\"representative_term\"]}')
+        print(f'  #{kw[\"rank\"]} {kw[\"display_name\"]:20s} score={kw[\"social_composite_score\"]:.4f} dir={kw[\"trend_direction\"]:15s} term={kw[\"raw_term\"]}')
 else:
     print('No keywords passed the composite score threshold.')
 "

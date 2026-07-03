@@ -1,11 +1,11 @@
 {
   "google": {
-    "actor_id": "data_xplorer/google-trends-trending-now",
+    "actor_id": "data_xplorer~google-trends-trending-now",
     "dataset_key": "defaultDatasetId",
     "result_format": "dataset_items"
   },
   "instagram": {
-    "actor_id": "breathtaking_anthem/instagram-hashtag-posts-scraper",
+    "actor_id": "breathtaking_anthem~instagram-hashtag-posts-scraper",
     "dataset_key": "defaultDatasetId",
     "result_format": "dataset_items"
   },
