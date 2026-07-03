@@ -30,6 +30,9 @@ This step is **presentation only**. Step 5 already produced the complete
 
 | Artifact | Content |
 |---|---|
+| `runs/YYYY-MM-DD/weekly_fnb_trending.json` | Full ranked output (JSON) |
+| `runs/YYYY-MM-DD/weekly_fnb_trending.csv` | All keywords (CSV) |
+| `runs/YYYY-MM-DD/weekly_fnb_trending_high_potential.csv` | High-potential keywords only (CSV) |
 | `runs/latest` → `runs/YYYY-MM-DD` | Symlink updated |
 | Conversation message | Summary + ranking table |
 
@@ -72,7 +75,85 @@ for kw in keywords:
 
 Replace `YYYY-MM-DD` with the actual run date.
 
-### 2. Update Symlink
+### 2. Export CSVs
+
+Write two CSV files alongside the JSON:
+
+```bash
+python3 -c "
+import json, csv
+
+with open('runs/YYYY-MM-DD/weekly_fnb_trending.json') as f:
+    data = json.load(f)
+
+keywords = data.get('keywords', [])
+
+# CSV 1: All keywords
+fieldnames = ['rank', 'canonical_key', 'display_name', 'raw_term', 'category', 'potential',
+              'social_composite_score', 'trend_direction', 'platform_hits',
+              'ig_score', 'ig_engagement_raw', 'ig_post_count', 'ig_previous_score',
+              'goog_score', 'goog_volume', 'goog_previous_score']
+
+with open('runs/YYYY-MM-DD/weekly_fnb_trending.csv', 'w', newline='') as f:
+    w = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
+    w.writeheader()
+    for kw in keywords:
+        ig = kw.get('platforms', {}).get('instagram', {})
+        goog = kw.get('platforms', {}).get('google', {})
+        row = {
+            'rank': kw.get('rank'),
+            'canonical_key': kw.get('canonical_key'),
+            'display_name': kw.get('display_name'),
+            'raw_term': kw.get('raw_term'),
+            'category': kw.get('category'),
+            'potential': kw.get('potential'),
+            'social_composite_score': kw.get('social_composite_score'),
+            'trend_direction': kw.get('trend_direction'),
+            'platform_hits': kw.get('platform_hits'),
+            'ig_score': ig.get('platform_score'),
+            'ig_engagement_raw': ig.get('engagement_raw'),
+            'ig_post_count': ig.get('post_count'),
+            'ig_previous_score': ig.get('previous_score'),
+            'goog_score': goog.get('platform_score'),
+            'goog_volume': goog.get('volume'),
+            'goog_previous_score': goog.get('previous_score'),
+        }
+        w.writerow(row)
+
+# CSV 2: High-potential only
+high_potential = [kw for kw in keywords if kw.get('potential') == 'high']
+with open('runs/YYYY-MM-DD/weekly_fnb_trending_high_potential.csv', 'w', newline='') as f:
+    w = csv.DictWriter(f, fieldnames=fieldnames, extrasaction='ignore')
+    w.writeheader()
+    for kw in high_potential:
+        ig = kw.get('platforms', {}).get('instagram', {})
+        goog = kw.get('platforms', {}).get('google', {})
+        row = {
+            'rank': kw.get('rank'),
+            'canonical_key': kw.get('canonical_key'),
+            'display_name': kw.get('display_name'),
+            'raw_term': kw.get('raw_term'),
+            'category': kw.get('category'),
+            'potential': kw.get('potential'),
+            'social_composite_score': kw.get('social_composite_score'),
+            'trend_direction': kw.get('trend_direction'),
+            'platform_hits': kw.get('platform_hits'),
+            'ig_score': ig.get('platform_score'),
+            'ig_engagement_raw': ig.get('engagement_raw'),
+            'ig_post_count': ig.get('post_count'),
+            'ig_previous_score': ig.get('previous_score'),
+            'goog_score': goog.get('platform_score'),
+            'goog_volume': goog.get('volume'),
+            'goog_previous_score': goog.get('previous_score'),
+        }
+        w.writerow(row)
+
+print(f'CSV all: {len(keywords)} rows')
+print(f'CSV high-potential: {len(high_potential)} rows')
+"
+```
+
+### 3. Update Symlink
 
 ```bash
 ln -sfn runs/YYYY-MM-DD runs/latest
@@ -81,7 +162,7 @@ ln -sfn runs/YYYY-MM-DD runs/latest
 This makes `runs/latest/weekly_fnb_trending.json` always point to the
 most recent run, enabling simple "show me this week's trends" queries.
 
-### 3. Present Results
+### 4. Present Results
 
 Format the output as follows:
 
@@ -160,7 +241,7 @@ End with:
 Full data: `runs/YYYY-MM-DD/weekly_fnb_trending.json`
 ```
 
-### 4. Responding to Trend Queries
+### 5. Responding to Trend Queries
 
 When the user asks about trends (e.g. "show this week's trends",
 "latest ranking", "what's trending"), read `runs/latest/weekly_fnb_trending.json`
