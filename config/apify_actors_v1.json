@@ -13,6 +13,30 @@
       "maxItems": 200
     }
   },
+  "threads": {
+    "actor_id": "automation-lab/threads-scraper",
+    "dataset_key": "defaultDatasetId",
+    "result_format": "dataset_items",
+    "input": {
+      "includeProfile": true,
+      "maxPosts": 500,
+      "mode": "search",
+      "postedAfter": "",
+      "postedBefore": "",
+      "searchQueries": [],
+      "usernames": []
+    },
+    "search_queries": [
+      "銅鑼灣美食",
+      "尖沙咀美食",
+      "觀塘美食",
+      "旺角美食",
+      "元朗美食",
+      "中環美食",
+      "新餐廳",
+      "香港餐廳"
+    ]
+  },
   "phase2": {
     "rednote": {
       "actor_id": "zen-studio/rednote-search-scraper",
