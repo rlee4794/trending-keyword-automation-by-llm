@@ -10,7 +10,7 @@
     "result_format": "dataset_items",
     "input": {
       "hashtag": "",
-      "maxItems": 200
+      "maxItems": 100
     }
   },
   "instagram_users": {
@@ -19,7 +19,7 @@
     "result_format": "dataset_items",
     "input": {
       "username": "",
-      "maxPosts": 200
+      "maxPosts": 40
     }
   },
   "threads": {
@@ -28,7 +28,7 @@
     "result_format": "dataset_items",
     "input": {
       "includeProfile": true,
-      "maxPosts": 500,
+      "maxPosts": 100,
       "mode": "search",
       "postedAfter": "",
       "postedBefore": "",
