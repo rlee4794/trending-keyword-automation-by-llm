@@ -39,13 +39,13 @@ def _load_mapping(mapping_path: Path) -> tuple[dict[str, str], dict[str, str], d
 
     Returns:
         match_to_key:  {match_value → canonical_key}
-        key_to_display: {canonical_key → display_term}
+        key_to_display_term: {canonical_key → display_term}
         key_to_desc:    {canonical_key → enriched_description}
         key_to_category: {canonical_key → category}
         key_to_potential: {canonical_key → potential}
     """
     match_to_key: dict[str, str] = {}
-    key_to_display: dict[str, str] = {}
+    key_to_display_term: dict[str, str] = {}
     key_to_desc: dict[str, str] = {}
     key_to_category: dict[str, str] = {}
     key_to_potential: dict[str, str] = {}
@@ -68,8 +68,8 @@ def _load_mapping(mapping_path: Path) -> tuple[dict[str, str], dict[str, str], d
                     )
                     continue  # first-match-wins
                 match_to_key[mv] = ck
-                if ck not in key_to_display:
-                    key_to_display[ck] = dt or ck
+                if ck not in key_to_display_term:
+                    key_to_display_term[ck] = dt or ck
                 if desc and ck not in key_to_desc:
                     key_to_desc[ck] = desc
                 cat = (row.get("category") or "").strip()
@@ -79,7 +79,7 @@ def _load_mapping(mapping_path: Path) -> tuple[dict[str, str], dict[str, str], d
                 if pot and ck not in key_to_potential:
                     key_to_potential[ck] = pot
 
-    return match_to_key, key_to_display, key_to_desc, key_to_category, key_to_potential
+    return match_to_key, key_to_display_term, key_to_desc, key_to_category, key_to_potential
 
 
 def _load_engagement_weights(config_path: Path) -> dict[str, int]:
@@ -173,7 +173,7 @@ def run(date_str: str, skip_unmatched: bool = False) -> None:
         sys.exit(1)
 
     # Load mapping
-    match_to_key, key_to_display, key_to_desc, key_to_category, key_to_potential = _load_mapping(mapping_path)
+    match_to_key, key_to_display_term, key_to_desc, key_to_category, key_to_potential = _load_mapping(mapping_path)
     print(f"Loaded {len(match_to_key)} match values from {mapping_path}", file=sys.stderr)
 
     # Load engagement weights
@@ -347,7 +347,7 @@ def run(date_str: str, skip_unmatched: bool = False) -> None:
 
         group: dict = {
             "canonical_key": ck,
-            "display_name": key_to_display.get(ck, ck),
+            "display_term": key_to_display_term.get(ck, ck),
             "platforms": plat_data,
             "matched_terms": dict(matched_terms[ck]),
         }

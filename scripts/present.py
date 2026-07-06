@@ -41,7 +41,7 @@ def cmd_read(run_dir: str) -> None:
         ig = kw.get("platforms", {}).get("instagram", {})
         goog = kw.get("platforms", {}).get("google", {})
         print(
-            f"KW|{kw.get('rank')}|{kw.get('display_name')}|"
+            f"KW|{kw.get('rank')}|{kw.get('display_term')}|"
             f"{kw.get('social_composite_score')}|{kw.get('trend_direction')}|"
             f"{ig.get('engagement_raw')}|{goog.get('volume')}|"
             f"{kw.get('category', '')}|{kw.get('potential', '')}"
@@ -54,7 +54,7 @@ def cmd_export(run_dir: str) -> None:
     keywords = data.get("keywords", [])
 
     fieldnames = [
-        "rank", "canonical_key", "display_name", "raw_representative",
+        "rank", "canonical_key", "display_term", "raw_representative",
         "category", "potential", "social_composite_score", "trend_direction",
         "platform_hits", "ig_score", "ig_engagement_raw", "ig_post_count",
         "ig_previous_score", "goog_score", "goog_volume", "goog_previous_score",
@@ -66,7 +66,7 @@ def cmd_export(run_dir: str) -> None:
         return {
             "rank": kw.get("rank"),
             "canonical_key": kw.get("canonical_key"),
-            "display_name": kw.get("display_name"),
+            "display_term": kw.get("display_term"),
             "raw_representative": kw.get("raw_representative"),
             "category": kw.get("category"),
             "potential": kw.get("potential"),

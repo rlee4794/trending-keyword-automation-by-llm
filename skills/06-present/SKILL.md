@@ -65,7 +65,7 @@ Group by `potential` and `category`:
 |---|---------|-------|-----------|---------|-------------|
 | 1 | Cafe | 0.72 | active | 142.5 | 62 |
 
-Columns: `rank`, `display_name`, `social_composite_score` (2dp), `trend_direction`,
+Columns: `rank`, `display_term`, `social_composite_score` (2dp), `trend_direction`,
 `platforms.instagram.engagement_raw` (1dp), `platforms.google.volume` (integer).
 Show `-` for null/zero values.
 

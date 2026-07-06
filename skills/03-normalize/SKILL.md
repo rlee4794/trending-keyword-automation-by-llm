@@ -36,7 +36,7 @@ Zero LLM tokens. Produces matched groups for ranking + unmatched queue for Step 
 {
   "sukiyaki": {
     "canonical_key": "sukiyaki",
-    "display_name": "Sukiyaki",
+    "display_term": "Sukiyaki",
     "category": "fnb",
     "potential": "high",
     "platforms": {

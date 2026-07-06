@@ -43,7 +43,7 @@ determine trend direction, and ranks all keywords.
   "keywords": [
     {
       "canonical_key": "sukiyaki",
-      "display_name": "Sukiyaki",
+      "display_term": "Sukiyaki",
       "raw_representative": "Sukiyaki",
       "category": "fnb",
       "potential": "high",
@@ -141,11 +141,11 @@ surging > new > active > declining > stable > insufficient_data
 
 ### Raw Term Selection
 
-From `matched_terms`: prefer most platforms → prefer non-hashtag → fallback to `display_name`.
+From `matched_terms`: prefer most platforms → prefer non-hashtag → fallback to `display_term`.
 
 ### Ranking
 
-Sort by `composite_score` descending; ties by `display_name` alphabetically. Assign rank from 1.
+Sort by `composite_score` descending; ties by `display_term` alphabetically. Assign rank from 1.
 
 ## Procedure
 

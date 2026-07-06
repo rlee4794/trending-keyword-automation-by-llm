@@ -58,7 +58,7 @@ def accumulate(all_dates: list[str]) -> dict:
 
         for ck, v in data.items():
             wk = windows[window]["keys"][ck]
-            wk["display_name"] = v.get("display_name", ck)
+            wk["display_term"] = v.get("display_term", ck)
             wk["enriched_description"] = v.get("enriched_description", "")
             wk["category"] = v.get("category", "")
             wk["potential"] = v.get("potential", "")
@@ -156,7 +156,7 @@ def score_windows(windows: dict) -> dict:
                 goog_score = math.log(vol + 1) / math.log(max_vol + 1)
 
             scores[wname][ck] = {
-                "display_name": wk.get("display_name", ck),
+                "display_term": wk.get("display_term", ck),
                 "category": wk.get("category", ""),
                 "potential": wk.get("potential", ""),
                 "ig_score": round(ig_score, 4),
@@ -206,10 +206,10 @@ def compute_direction(scores: dict, windows: dict) -> list[dict]:
         else:
             return "stable"
 
-    def select_raw_term(matched_terms, display_name):
-        """Select best surface term: most platforms > non-hashtag > display_name."""
+    def select_raw_term(matched_terms, display_term):
+        """Select best surface term: most platforms > non-hashtag > display_term."""
         if not matched_terms:
-            return display_name
+            return display_term
         best = max(
             matched_terms.items(),
             key=lambda t: (
@@ -241,12 +241,12 @@ def compute_direction(scores: dict, windows: dict) -> list[dict]:
         extra = max(0, platforms_hit - 1)
         composite = round(ig_w * ig_s + goog_w * goog_s + bonus * extra, 4)
 
-        display = cw_score.get("display_name", ck) or pw_score.get("display_name", ck)
+        display = cw_score.get("display_term", ck) or pw_score.get("display_term", ck)
         raw_term = select_raw_term(cw_score.get("matched_terms", {}), display)
 
         results.append({
             "canonical_key": ck,
-            "display_name": display,
+            "display_term": display,
             "raw_representative": raw_term,
             "category": cw_score.get("category", pw_score.get("category", "")),
             "potential": cw_score.get("potential", pw_score.get("potential", "")),
@@ -268,7 +268,7 @@ def compute_direction(scores: dict, windows: dict) -> list[dict]:
 def filter_and_rank(results: list[dict], threshold: float = 0.10) -> list[dict]:
     """Filter by composite score, sort, assign rank."""
     filtered = [r for r in results if r["social_composite_score"] >= threshold]
-    filtered.sort(key=lambda r: (-r["social_composite_score"], r["display_name"]))
+    filtered.sort(key=lambda r: (-r["social_composite_score"], r["display_term"]))
     for i, r in enumerate(filtered):
         r["rank"] = i + 1
     return filtered
@@ -285,7 +285,7 @@ def assemble_output(
     for r in ranked:
         keywords.append({
             "canonical_key": r["canonical_key"],
-            "display_name": r["display_name"],
+            "display_term": r["display_term"],
             "raw_representative": r["raw_representative"],
             "category": r["category"],
             "potential": r["potential"],
