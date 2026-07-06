@@ -61,6 +61,12 @@ config/social_listening_v1.json ──→ normalize_raw.py ──→ runs/{date}
                                                                                   └── Step 6: present.py
 ```
 
+## Token Optimization
+
+Steps 2A and 4 use `sessions_spawn(task=..., thinking="low")` for LLM classification
+batches. These tasks need pattern matching and classification, not deep reasoning.
+`thinking=low` saves ~68K tokens per run vs `thinking=medium`.
+
 ## Key Assets
 
 | Path | Purpose |

@@ -97,10 +97,18 @@ Read `skills/04-review/review-prompt.md`.
 2. Read `batch_NNN_terms.txt`
 3. Replace `{ANCHORS}` and `{TERMS}` placeholders in prompt template
 
-#### 2e. Classify (Agent-driven)
+#### 2e. Classify (thinking=low sub-agent)
 
-Send the assembled prompt. Classify every term as CREATE / MERGE / DISCARD.
-Return ONLY the JSON response as specified in the prompt template.
+**Spawn a sub-agent with `thinking="low"`** to classify the batch:
+
+```
+sessions_spawn(task="<assembled prompt>", thinking="low")
+sessions_yield
+```
+
+This saves ~42K thinking tokens per run vs thinking=medium.
+The sub-agent receives the full prompt as its task, classifies every term
+as CREATE / MERGE / DISCARD, and returns ONLY the JSON response.
 
 #### 2f. Commit batch
 

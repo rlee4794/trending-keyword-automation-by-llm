@@ -40,14 +40,21 @@ is in the captions.
 Check if `extracted/instagram_keywords.json` exists. If N records already processed,
 resume from index N. Otherwise start from 0.
 
-### 2. Batch Processing
+### 2. Batch Processing (via thinking=low sub-agent)
 
 Process in batches of **100 records**. Per batch:
 
-1. Build prompt with batch captions (format: `record_index | caption_text`)
-2. Send prompt, parse JSON response
-3. Append `extracted_keywords` to each record
+1. Build the extraction prompt with batch captions (format: `record_index | caption_text`)
+2. **Spawn a sub-agent with `thinking="low"`** to classify the batch:
+   ```
+   sessions_spawn(task="<fully assembled prompt with captions>", thinking="low")
+   sessions_yield
+   ```
+   This saves ~26K thinking tokens per run vs thinking=medium. The sub-agent
+   receives the full prompt as its task, classifies, and returns the JSON response.
+3. Parse the JSON response, append `extracted_keywords` to each record
 4. Write incrementally to output file (crash-safe)
+5. If JSON parse fails, retry once with same prompt. If still failing, skip batch.
 
 ### 3. Extraction Prompt
 
