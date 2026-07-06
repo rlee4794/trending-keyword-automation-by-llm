@@ -24,18 +24,18 @@ This step is **purely deterministic** — zero LLM tokens.
 
 ## Input
 
-| File | Source | Content |
-|---|---|---|
-| `runs/YYYY-MM-DD/filtered/google_filtered.json` | Step 2B | Filtered Google Trends records |
-| `runs/YYYY-MM-DD/filtered/instagram_filtered.json` | Step 2B | Filtered Instagram records with `terms` field |
-| `data/mappings/canonical_mapping.csv` | Project asset | Core mapping table (4 columns) |
+| File                                               | Source        | Content                                       |
+| -------------------------------------------------- | ------------- | --------------------------------------------- |
+| `runs/YYYY-MM-DD/filtered/google_filtered.json`    | Step 2B       | Filtered Google Trends records                |
+| `runs/YYYY-MM-DD/filtered/instagram_filtered.json` | Step 2B       | Filtered Instagram records with `terms` field |
+| `data/mappings/canonical_mapping.csv`              | Project asset | Core mapping table (4 columns)                |
 
 ## Output
 
-| File | Content |
-|---|---|
-| `runs/YYYY-MM-DD/matched_groups.json` | Terms grouped by canonical key, with per-platform volume |
-| `runs/YYYY-MM-DD/unmatched_review_queue.csv` | Terms that failed exact match (→ Step 4) |
+| File                                         | Content                                                  |
+| -------------------------------------------- | -------------------------------------------------------- |
+| `runs/YYYY-MM-DD/matched_groups.json`        | Terms grouped by canonical key, with per-platform volume |
+| `runs/YYYY-MM-DD/unmatched_review_queue.csv` | Terms that failed exact match (→ Step 4)                 |
 
 ### matched_groups.json schema
 
@@ -48,12 +48,19 @@ This step is **purely deterministic** — zero LLM tokens.
     "category": "fnb",
     "potential": "high",
     "platforms": {
-      "google": {"current_volume": 1000, "record_count": 3},
-      "instagram": {"current_volume": 45, "record_count": 12, "engagement_raw": 142.5, "engagement_details": [{"likes": 1658, "comments": 35, "shares": 2287}]}
+      "google": { "current_volume": 1000, "record_count": 3 },
+      "instagram": {
+        "current_volume": 45,
+        "record_count": 12,
+        "engagement_raw": 142.5,
+        "engagement_details": [
+          { "likes": 1658, "comments": 35, "shares": 2287 }
+        ]
+      }
     },
     "matched_terms": {
-      "sukiyaki": {"platforms": ["instagram", "google"], "is_hashtag": false},
-      "#sukiyaki": {"platforms": ["instagram"], "is_hashtag": true}
+      "sukiyaki": { "platforms": ["instagram", "google"], "is_hashtag": false },
+      "#sukiyaki": { "platforms": ["instagram"], "is_hashtag": true }
     }
   }
 }
@@ -64,7 +71,7 @@ Instagram platform entries include `engagement_raw` (log-normalised weighted sum
 ### unmatched_review_queue.csv schema
 
 ```csv
-raw_term,platform,suggested_cleanup_term,review_status,review_action,target_canonical_key,review_note
+raw_representative,platform,suggested_cleanup_term,review_status,review_action,target_canonical_key,review_note
 一粥麵,google,一粥麵,pending,,,
 沙嗲拼盤,instagram,沙嗲拼盤,pending,,,
 ```
@@ -73,14 +80,14 @@ raw_term,platform,suggested_cleanup_term,review_status,review_action,target_cano
 
 All paths are relative to the project root.
 
-| Path | Purpose |
-|---|---|
-| `data/mappings/canonical_mapping.csv` | Core mapping table (4 columns: canonical_key, match_value, display_term, enriched_description) |
-| `runs/YYYY-MM-DD/filtered/google_filtered.json` | Input: Google Trends filtered payload |
-| `runs/YYYY-MM-DD/filtered/instagram_filtered.json` | Input: Instagram filtered payload |
-| `runs/YYYY-MM-DD/matched_groups.json` | Output: matched groups for Step 5 (ranking) |
-| `runs/YYYY-MM-DD/unmatched_review_queue.csv` | Output: unmatched terms for Step 4 (LLM Review) |
-| `scripts/exact_match.py` | Deterministic exact-match script |
+| Path                                               | Purpose                                                                                        |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `data/mappings/canonical_mapping.csv`              | Core mapping table (4 columns: canonical_key, match_value, display_term, enriched_description) |
+| `runs/YYYY-MM-DD/filtered/google_filtered.json`    | Input: Google Trends filtered payload                                                          |
+| `runs/YYYY-MM-DD/filtered/instagram_filtered.json` | Input: Instagram filtered payload                                                              |
+| `runs/YYYY-MM-DD/matched_groups.json`              | Output: matched groups for Step 5 (ranking)                                                    |
+| `runs/YYYY-MM-DD/unmatched_review_queue.csv`       | Output: unmatched terms for Step 4 (LLM Review)                                                |
+| `scripts/exact_match.py`                           | Deterministic exact-match script                                                               |
 
 ### canonical_mapping.csv schema
 
@@ -115,13 +122,14 @@ cd PROJECT_ROOT && python3 scripts/exact_match.py --date "$TARGET_DATE"
 ```
 
 This script:
+
 1. Reads `canonical_mapping.csv` into a `{match_value → canonical_key}` lookup table.
    **First-match-wins**: if a match_value appears for multiple canonical keys, the
    first occurrence in CSV order wins. Conflicts are printed as WARNING to stderr.
 2. Reads `google_filtered.json` and `instagram_filtered.json`
 3. Loads engagement weights and popular post boost config from `config/instagram_scoring.json`
 4. Extracts candidate terms:
-   - **Google:** `raw_term` field from each record
+   - **Google:** `raw_representative` field from each record
    - **Instagram:** `terms` field from each record (supports both `{"text":"...", "source":"keyword|hashtag"}` objects and legacy plain strings)
 5. Cleans each term: strip leading `#`, lowercase, trim whitespace
 6. Looks up cleaned term in the lookup table **per term** (not per record)
@@ -165,23 +173,23 @@ else:
 
 ## Error Handling
 
-| Scenario | Action |
-|---|---|
-| `canonical_mapping.csv` missing | Abort. This is a required asset. |
-| Both filtered JSON files missing | Abort. Nothing to match. |
-| One filtered JSON missing | Continue with available platform. Log warning. |
-| `exact_match.py` fails | Abort. Check script output for details. |
-| Output directory not writable | Abort. Check permissions. |
+| Scenario                         | Action                                         |
+| -------------------------------- | ---------------------------------------------- |
+| `canonical_mapping.csv` missing  | Abort. This is a required asset.               |
+| Both filtered JSON files missing | Abort. Nothing to match.                       |
+| One filtered JSON missing        | Continue with available platform. Log warning. |
+| `exact_match.py` fails           | Abort. Check script output for details.        |
+| Output directory not writable    | Abort. Check permissions.                      |
 
 ---
 
 ## Token Budget
 
-| Item | Estimate |
-|---|---|
-| Shell exec (exact_match.py) | 0 LLM tokens |
-| Verification output | ~500 tokens |
-| **Total** | **~500 tokens** |
+| Item                        | Estimate        |
+| --------------------------- | --------------- |
+| Shell exec (exact_match.py) | 0 LLM tokens    |
+| Verification output         | ~500 tokens     |
+| **Total**                   | **~500 tokens** |
 
 This step is purely Python execution. Agent only verifies results.
 

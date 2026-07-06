@@ -124,7 +124,7 @@ def _normalise_google_trends(
         term = item.get("term") or ""
         current_volume = item.get("trend_volume_raw", 0) or 0
         records.append({
-            "raw_term": term,
+            "raw_representative": term,
             "source_kind": "trending_search",
             "current_volume": current_volume,
             "previous_volume": None,
@@ -160,7 +160,7 @@ def _normalise_instagram_posts(
         likes = item.get("like_count", 0) or 0
         comments = item.get("comment_count", 0) or 0
         records.append({
-            "raw_term": f"#{hashtag}",
+            "raw_representative": f"#{hashtag}",
             "source_kind": "hashtag",
             "current_volume": 1,
             "previous_volume": None,

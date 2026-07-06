@@ -26,12 +26,12 @@ to determine true week-over-week trend direction.
 
 ## Input
 
-| File | Source | Content |
-|---|---|---|
-| `runs/{T-13}/matched_groups.json` … `runs/{T}/matched_groups.json` | Steps 3–4 (daily) | 14 days of matched canonical keys |
-| `config/instagram_scoring.json` | Project asset | IG engagement weights and log normalisation params |
-| `config/google_scoring.json` | Project asset | Google scoring params |
-| `config/ranking.json` | Project asset | Platform weights, bonus, direction thresholds |
+| File                                                               | Source            | Content                                            |
+| ------------------------------------------------------------------ | ----------------- | -------------------------------------------------- |
+| `runs/{T-13}/matched_groups.json` … `runs/{T}/matched_groups.json` | Steps 3–4 (daily) | 14 days of matched canonical keys                  |
+| `config/instagram_scoring.json`                                    | Project asset     | IG engagement weights and log normalisation params |
+| `config/google_scoring.json`                                       | Project asset     | Google scoring params                              |
+| `config/ranking.json`                                              | Project asset     | Platform weights, bonus, direction thresholds      |
 
 ## Output
 
@@ -61,7 +61,7 @@ to determine true week-over-week trend direction.
     {
       "canonical_key": "sukiyaki",
       "display_name": "Sukiyaki",
-      "raw_term": "Sukiyaki",
+      "raw_representative": "Sukiyaki",
       "category": "fnb",
       "potential": "high",
       "social_composite_score": 0.72,
@@ -87,6 +87,7 @@ to determine true week-over-week trend direction.
 ```
 
 **Key changes from schema v2.0:**
+
 - `period` now contains `current_week` and `previous_week` with `days_with_data`
 - `previous_score` is computed from the previous-week window aggregate, not from a prior pipeline run
 - New trend direction: `insufficient_data` (when either window has < 2 days of data)
@@ -253,13 +254,13 @@ If current_week.days_with_data  < 2  OR  previous_week.days_with_data < 2
 
 For each platform independently:
 
-| Condition | Direction |
-|---|---|
-| Keyword not present in previous week at all | `new` |
+| Condition                                        | Direction |
+| ------------------------------------------------ | --------- | ----------------------- | ----------- |
+| Keyword not present in previous week at all      | `new`     |
 | `delta ≥ 0.1` AND `delta / previous_score ≥ 0.3` | `surging` |
-| `delta > 0` but does not meet surging thresholds | `active` |
-| `delta ≤ -0.05` AND `|delta| / previous_score ≥ 0.2` | `declining` |
-| Otherwise | `stable` |
+| `delta > 0` but does not meet surging thresholds | `active`  |
+| `delta ≤ -0.05` AND `                            | delta     | / previous_score ≥ 0.2` | `declining` |
+| Otherwise                                        | `stable`  |
 
 Where `delta = current_score - previous_score`.
 
@@ -283,6 +284,7 @@ Select the best surface term from the merged `matched_terms` across the
 **current week** window.
 
 Priority rules (in order):
+
 1. **Most platforms seen** — count how many platforms the term appears on
 2. **Prefer non-hashtag** — a plain term beats a `#hashtag` form
 3. **Fall back to `display_name`** — if no matched_terms exist
@@ -301,13 +303,13 @@ alphabetically for deterministic ordering.
 
 All paths are relative to the project root.
 
-| Path | Purpose |
-|---|---|
-| `runs/{date}/matched_groups.json` | Input: 14 days of matched groups |
-| `config/instagram_scoring.json` | IG engagement weights |
-| `config/google_scoring.json` | Google scoring params |
-| `config/ranking.json` | Platform weights, bonus, thresholds |
-| `runs/YYYY-MM-DD/weekly_fnb_trending.json` | Output: ranked keywords |
+| Path                                       | Purpose                             |
+| ------------------------------------------ | ----------------------------------- |
+| `runs/{date}/matched_groups.json`          | Input: 14 days of matched groups    |
+| `config/instagram_scoring.json`            | IG engagement weights               |
+| `config/google_scoring.json`               | Google scoring params               |
+| `config/ranking.json`                      | Platform weights, bonus, thresholds |
+| `runs/YYYY-MM-DD/weekly_fnb_trending.json` | Output: ranked keywords             |
 
 ---
 
@@ -324,6 +326,7 @@ cat config/ranking.json
 ```
 
 Note the values:
+
 - `engagement_weights`: likes/comments/shares multipliers
 - `platform_weights`: IG and Google weight
 - `dual_platform_bonus`: additive bonus per extra platform
@@ -612,6 +615,7 @@ for ck in sorted(all_keys):
 ```
 
 Each line:
+
 ```
 canonical_key|display_name|ig_score|goog_score|composite|platform_hits|trend_direction|ig_dir|goog_dir|ig_eng_raw|goog_vol|prev_ig_score|prev_goog_score|ig_post_count
 ```
@@ -670,7 +674,7 @@ keywords = [
     {
         'canonical_key': 'sukiyaki',
         'display_name': 'Sukiyaki',
-        'raw_term': 'Sukiyaki',
+        'raw_representative': 'Sukiyaki',
         'category': 'fnb',
         'potential': 'high',
         'social_composite_score': 0.7234,
@@ -758,7 +762,7 @@ if keywords:
     print()
     print('Top 5:')
     for kw in keywords[:5]:
-        print(f'  #{kw[\"rank\"]} {kw[\"display_name\"]:20s} score={kw[\"social_composite_score\"]:.4f} dir={kw[\"trend_direction\"]:15s} term={kw[\"raw_term\"]}')
+        print(f'  #{kw[\"rank\"]} {kw[\"display_name\"]:20s} score={kw[\"social_composite_score\"]:.4f} dir={kw[\"trend_direction\"]:15s} term={kw[\"raw_representative\"]}')
 else:
     print('No keywords passed the composite score threshold.')
 "
@@ -768,42 +772,42 @@ else:
 
 ## Edge Cases
 
-| Scenario | Handling |
-|---|---|
-| < 14 days of data accumulated (cold start) | Process whatever is available; `days_with_data` reflects reality |
-| Either window has < 2 days of data | All keywords `trend_direction = "insufficient_data"` |
-| Keyword in current week but not previous | `previous_score = null`, trend = `new` |
-| Keyword in previous week but not current | Naturally absent from output (no current data to score) |
-| Some dates missing matched_groups.json | Skipped; `days_with_data` decremented; normalize by actual day count |
-| All 14 dates missing | Abort. Nothing to rank. |
-| Single platform only (all keywords IG-only) | Google scores all 0, max composite = 0.6 |
-| All keywords below threshold | Output empty `keywords: []` with metadata |
-| Config files missing | Abort. Required assets. |
+| Scenario                                    | Handling                                                             |
+| ------------------------------------------- | -------------------------------------------------------------------- |
+| < 14 days of data accumulated (cold start)  | Process whatever is available; `days_with_data` reflects reality     |
+| Either window has < 2 days of data          | All keywords `trend_direction = "insufficient_data"`                 |
+| Keyword in current week but not previous    | `previous_score = null`, trend = `new`                               |
+| Keyword in previous week but not current    | Naturally absent from output (no current data to score)              |
+| Some dates missing matched_groups.json      | Skipped; `days_with_data` decremented; normalize by actual day count |
+| All 14 dates missing                        | Abort. Nothing to rank.                                              |
+| Single platform only (all keywords IG-only) | Google scores all 0, max composite = 0.6                             |
+| All keywords below threshold                | Output empty `keywords: []` with metadata                            |
+| Config files missing                        | Abort. Required assets.                                              |
 
 ---
 
 ## Error Handling
 
-| Scenario | Action |
-|---|---|
-| No `matched_groups.json` files found at all | Abort. Nothing to rank. |
-| Config files missing | Abort. Required assets. |
-| Output directory not writable | Abort. Check permissions. |
-| Accumulation script fails | Abort. Check script output. |
+| Scenario                                    | Action                      |
+| ------------------------------------------- | --------------------------- |
+| No `matched_groups.json` files found at all | Abort. Nothing to rank.     |
+| Config files missing                        | Abort. Required assets.     |
+| Output directory not writable               | Abort. Check permissions.   |
+| Accumulation script fails                   | Abort. Check script output. |
 
 ---
 
 ## Token Budget
 
-| Item | Estimate |
-|---|---|
-| Config reads (3 files) | ~500 tokens |
-| Accumulation scan (14 files × ~2K) | ~28K tokens |
-| Scoring computation | ~3K tokens |
-| Trend direction computation | ~2K tokens |
-| Assembly + write output | ~2K tokens |
-| Verification | ~1K tokens |
-| **Total** | **~37K tokens** |
+| Item                               | Estimate        |
+| ---------------------------------- | --------------- |
+| Config reads (3 files)             | ~500 tokens     |
+| Accumulation scan (14 files × ~2K) | ~28K tokens     |
+| Scoring computation                | ~3K tokens      |
+| Trend direction computation        | ~2K tokens      |
+| Assembly + write output            | ~2K tokens      |
+| Verification                       | ~1K tokens      |
+| **Total**                          | **~37K tokens** |
 
 Token cost is dominated by reading 14 `matched_groups.json` files.
 File sizes are small (~2K tokens each) since they contain only matched

@@ -13,7 +13,7 @@ description: >
 ## Purpose
 
 Instagram raw data contains `caption_snippet` text (~500 chars) per post.
-The raw `raw_term` is the search hashtag (e.g. `#hkfood`), not the actual
+The raw `raw_representative` is the search hashtag (e.g. `#hkfood`), not the actual
 content keywords. This step reads each caption and extracts the real F&B
 concepts mentioned — dish names, cuisines, ingredients, food trends — so
 they can be filtered and ranked in later steps.
@@ -23,9 +23,10 @@ they can be filtered and ranked in later steps.
 `runs/YYYY-MM-DD/raw/instagram_raw.json`
 
 Each record has:
+
 ```json
 {
-  "raw_term": "#hkfood",
+  "raw_representative": "#hkfood",
   "source_kind": "hashtag",
   "current_volume": 1,
   "raw_payload": {
@@ -47,9 +48,10 @@ Each record has:
 `runs/YYYY-MM-DD/extracted/instagram_keywords.json`
 
 Same record structure, with an added `extracted_keywords` field:
+
 ```json
 {
-  "raw_term": "#hkfood",
+  "raw_representative": "#hkfood",
   "source_kind": "hashtag",
   "current_volume": 1,
   "raw_payload": { "caption_snippet": "...", "hashtags": [...], ... },
@@ -59,10 +61,10 @@ Same record structure, with an added `extracted_keywords` field:
 
 ## Project Paths
 
-| Path | Purpose |
-|---|---|
-| `runs/YYYY-MM-DD/raw/instagram_raw.json` | Input: raw Instagram records with captions |
-| `runs/YYYY-MM-DD/extracted/instagram_keywords.json` | Output: records with extracted_keywords |
+| Path                                                | Purpose                                    |
+| --------------------------------------------------- | ------------------------------------------ |
+| `runs/YYYY-MM-DD/raw/instagram_raw.json`            | Input: raw Instagram records with captions |
+| `runs/YYYY-MM-DD/extracted/instagram_keywords.json` | Output: records with extracted_keywords    |
 
 ---
 
@@ -133,6 +135,7 @@ For each caption below, extract up to 8 F&B-related keywords. Prioritize:
 5. **Well-known or trending restaurants and food venues** — restaurant names that appear prominently in food content and generate discussion. Include both major chains (e.g. 壽司郎, 麥當勞, 薩莉亞) and notable independent restaurants that are clearly being talked about as food destinations (e.g. a famous dai pai dong, a viral Instagram cafe). If uncertain, err on the side of extracting — downstream filtering will handle borderline cases.
 
 Do NOT extract:
+
 - Location names used standalone (北角, 旺角, 中環, mongkok, causeway bay) — but DO extract location+food compounds like 北角雞蛋仔 where the location is part of a known food concept
 - Non-food activities (唱K, 打卡, 行山)
 - Generic social media terms (hkfood, 香港美食, foodie, 相機食先)
@@ -168,6 +171,7 @@ Return ONLY a JSON object. No markdown, no explanation.
 ```
 
 Rules:
+
 - `record_index` must match the input index exactly.
 - If no F&B keywords are found, return an empty array `[]`.
 - Return at most 8 keywords per caption, ordered by relevance.
@@ -210,25 +214,25 @@ print(f'Total keywords extracted: {total_kw}')
 
 ## Error Handling
 
-| Scenario | Action |
-|---|---|
-| `instagram_raw.json` missing | Abort. Log error. |
-| Empty records array | Skip step, create empty output. |
-| Batch LLM call fails | Retry once. If still failing, skip batch and log. |
-| LLM returns malformed JSON | Retry batch with stricter prompt. If still failing, skip. |
-| Resume after crash | Re-read output file, continue from last processed index. |
+| Scenario                     | Action                                                    |
+| ---------------------------- | --------------------------------------------------------- |
+| `instagram_raw.json` missing | Abort. Log error.                                         |
+| Empty records array          | Skip step, create empty output.                           |
+| Batch LLM call fails         | Retry once. If still failing, skip batch and log.         |
+| LLM returns malformed JSON   | Retry batch with stricter prompt. If still failing, skip. |
+| Resume after crash           | Re-read output file, continue from last processed index.  |
 
 ---
 
 ## Token Budget
 
-| Item | Estimate |
-|---|---|
-| 100 captions (~500 chars each) | ~50K chars input |
-| Extraction prompt + instructions | ~2K chars |
+| Item                                 | Estimate         |
+| ------------------------------------ | ---------------- |
+| 100 captions (~500 chars each)       | ~50K chars input |
+| Extraction prompt + instructions     | ~2K chars        |
 | JSON response (100 × avg 5 keywords) | ~5K chars output |
-| **Per batch** | **~57K tokens** |
-| **8 batches total** | **~460K tokens** |
+| **Per batch**                        | **~57K tokens**  |
+| **8 batches total**                  | **~460K tokens** |
 
 ---
 

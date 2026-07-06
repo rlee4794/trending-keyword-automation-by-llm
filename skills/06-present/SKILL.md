@@ -22,26 +22,26 @@ This step is **presentation only**. Step 5 already produced the complete
 
 ## Input
 
-| File | Source | Content |
-|---|---|---|
+| File                                       | Source | Content                                                                 |
+| ------------------------------------------ | ------ | ----------------------------------------------------------------------- |
 | `runs/YYYY-MM-DD/weekly_fnb_trending.json` | Step 5 | Ranked keywords with scores, directions, platform metrics (schema v3.0) |
 
 ## Output
 
-| Artifact | Content |
-|---|---|
-| `runs/YYYY-MM-DD/weekly_fnb_trending.json` | Full ranked output (JSON) |
-| `runs/YYYY-MM-DD/weekly_fnb_trending.csv` | All keywords (CSV) |
+| Artifact                                                 | Content                            |
+| -------------------------------------------------------- | ---------------------------------- |
+| `runs/YYYY-MM-DD/weekly_fnb_trending.json`               | Full ranked output (JSON)          |
+| `runs/YYYY-MM-DD/weekly_fnb_trending.csv`                | All keywords (CSV)                 |
 | `runs/YYYY-MM-DD/weekly_fnb_trending_high_potential.csv` | High-potential keywords only (CSV) |
-| `runs/latest` → `runs/YYYY-MM-DD` | Symlink updated |
-| Conversation message | Summary + ranking table |
+| `runs/latest` → `runs/YYYY-MM-DD`                        | Symlink updated                    |
+| Conversation message                                     | Summary + ranking table            |
 
 ## Project Paths
 
-| Path | Purpose |
-|---|---|
-| `runs/YYYY-MM-DD/weekly_fnb_trending.json` | Input: ranked keywords |
-| `runs/latest` | Symlink target (updated by this step) |
+| Path                                       | Purpose                               |
+| ------------------------------------------ | ------------------------------------- |
+| `runs/YYYY-MM-DD/weekly_fnb_trending.json` | Input: ranked keywords                |
+| `runs/latest`                              | Symlink target (updated by this step) |
 
 ---
 
@@ -89,7 +89,7 @@ with open('runs/YYYY-MM-DD/weekly_fnb_trending.json') as f:
 keywords = data.get('keywords', [])
 
 # CSV 1: All keywords
-fieldnames = ['rank', 'canonical_key', 'display_name', 'raw_term', 'category', 'potential',
+fieldnames = ['rank', 'canonical_key', 'display_name', 'raw_representative', 'category', 'potential',
               'social_composite_score', 'trend_direction', 'platform_hits',
               'ig_score', 'ig_engagement_raw', 'ig_post_count', 'ig_previous_score',
               'goog_score', 'goog_volume', 'goog_previous_score']
@@ -104,7 +104,7 @@ with open('runs/YYYY-MM-DD/weekly_fnb_trending.csv', 'w', newline='') as f:
             'rank': kw.get('rank'),
             'canonical_key': kw.get('canonical_key'),
             'display_name': kw.get('display_name'),
-            'raw_term': kw.get('raw_term'),
+            'raw_representative': kw.get('raw_representative'),
             'category': kw.get('category'),
             'potential': kw.get('potential'),
             'social_composite_score': kw.get('social_composite_score'),
@@ -132,7 +132,7 @@ with open('runs/YYYY-MM-DD/weekly_fnb_trending_high_potential.csv', 'w', newline
             'rank': kw.get('rank'),
             'canonical_key': kw.get('canonical_key'),
             'display_name': kw.get('display_name'),
-            'raw_term': kw.get('raw_term'),
+            'raw_representative': kw.get('raw_representative'),
             'category': kw.get('category'),
             'potential': kw.get('potential'),
             'social_composite_score': kw.get('social_composite_score'),
@@ -186,49 +186,49 @@ Show the pipeline throughput if available in `meta`:
 
 Show these first — they are specific, interesting signals worth paying attention to.
 
-| # | Keyword | Score | Direction | IG Eng. | Google Vol. |
-|---|---------|-------|-----------|---------|-------------|
-| 5 | 壽喜燒 | 0.55 | surging | 210.3 | 62 |
-| 12 | 酸辣粉 | 0.48 | active | 142.5 | 0 |
-| ... | ... | ... | ... | ... | ... |
+| #   | Keyword | Score | Direction | IG Eng. | Google Vol. |
+| --- | ------- | ----- | --------- | ------- | ----------- |
+| 5   | 壽喜燒  | 0.55  | surging   | 210.3   | 62          |
+| 12  | 酸辣粉  | 0.48  | active    | 142.5   | 0           |
+| ... | ...     | ...   | ...       | ...     | ...         |
 
 Then group remaining keywords by `category`:
 
 **🍽️ F&B Concepts** (`category = "fnb"` or empty, `potential != "high"`)
 
-| # | Keyword | Score | Direction | IG Eng. | Google Vol. |
-|---|---------|-------|-----------|---------|-------------|
-| 1 | Cafe | 0.72 | active | 142.5 | 62 |
-| 2 | 日本菜 | 0.65 | new | 98.3 | 0 |
-| ... | ... | ... | ... | ... | ... |
+| #   | Keyword | Score | Direction | IG Eng. | Google Vol. |
+| --- | ------- | ----- | --------- | ------- | ----------- |
+| 1   | Cafe    | 0.72  | active    | 142.5   | 62          |
+| 2   | 日本菜  | 0.65  | new       | 98.3    | 0           |
+| ... | ...     | ...   | ...       | ...     | ...         |
 
 **📍 Restaurants & Venues** (`category = "poi"`)
 
-| # | Keyword | Score | Direction | IG Eng. | Google Vol. |
-|---|---------|-------|-----------|---------|-------------|
-| 1 | 壽司郎 | 0.58 | surging | 210.3 | 85 |
-| ... | ... | ... | ... | ... | ... |
+| #   | Keyword | Score | Direction | IG Eng. | Google Vol. |
+| --- | ------- | ----- | --------- | ------- | ----------- |
+| 1   | 壽司郎  | 0.58  | surging   | 210.3   | 85          |
+| ... | ...     | ...   | ...       | ...     | ...         |
 
 **🗺️ Locations** (`category = "location"`)
 
-| # | Keyword | Score | Direction | IG Eng. | Google Vol. |
-|---|---------|-------|-----------|---------|-------------|
-| 1 | 諾士佛臺 | 0.42 | active | 55.1 | 30 |
-| ... | ... | ... | ... | ... | ... |
+| #   | Keyword  | Score | Direction | IG Eng. | Google Vol. |
+| --- | -------- | ----- | --------- | ------- | ----------- |
+| 1   | 諾士佛臺 | 0.42  | active    | 55.1    | 30          |
+| ... | ...      | ...   | ...       | ...     | ...         |
 
 If a category section has no keywords, skip it.
 Within each section, maintain the global rank numbers.
 
 Column definitions:
 
-| Column | JSON path | Format | Notes |
-|---|---|---|---|
-| # | `keywords[].rank` | integer | 1-based, global |
-| Keyword | `keywords[].display_name` | string | |
-| Score | `keywords[].social_composite_score` | float, 2 decimal | |
-| Direction | `keywords[].trend_direction` | string | new / surging / active / stable / declining / insufficient_data |
-| IG Eng. | `keywords[].platforms.instagram.engagement_raw` | float, 1 decimal | `-` if null or 0 |
-| Google Vol. | `keywords[].platforms.google.volume` | integer | `-` if null or 0 |
+| Column      | JSON path                                       | Format           | Notes                                                           |
+| ----------- | ----------------------------------------------- | ---------------- | --------------------------------------------------------------- |
+| #           | `keywords[].rank`                               | integer          | 1-based, global                                                 |
+| Keyword     | `keywords[].display_name`                       | string           |                                                                 |
+| Score       | `keywords[].social_composite_score`             | float, 2 decimal |                                                                 |
+| Direction   | `keywords[].trend_direction`                    | string           | new / surging / active / stable / declining / insufficient_data |
+| IG Eng.     | `keywords[].platforms.instagram.engagement_raw` | float, 1 decimal | `-` if null or 0                                                |
+| Google Vol. | `keywords[].platforms.google.volume`            | integer          | `-` if null or 0                                                |
 
 Display all ranked keywords. If the list is long (>20), show the first 20
 and note how many more exist.
@@ -256,22 +256,22 @@ and compare `social_composite_score` and `trend_direction` across dates.
 
 ## Error Handling
 
-| Scenario | Action |
-|---|---|
-| `weekly_fnb_trending.json` missing | Abort. Step 5 must complete first. |
-| `keywords` array is empty | Present "No keywords passed threshold" with metadata. |
-| JSON parse fails | Abort. Report the error. |
-| Symlink update fails | Non-critical. Continue with presentation. |
+| Scenario                           | Action                                                |
+| ---------------------------------- | ----------------------------------------------------- |
+| `weekly_fnb_trending.json` missing | Abort. Step 5 must complete first.                    |
+| `keywords` array is empty          | Present "No keywords passed threshold" with metadata. |
+| JSON parse fails                   | Abort. Report the error.                              |
+| Symlink update fails               | Non-critical. Continue with presentation.             |
 
 ---
 
 ## Token Budget
 
-| Item | Estimate |
-|---|---|
-| JSON read (21 keywords) | ~3K tokens |
-| Table formatting | ~1K tokens |
-| **Total** | **~4K tokens** |
+| Item                    | Estimate       |
+| ----------------------- | -------------- |
+| JSON read (21 keywords) | ~3K tokens     |
+| Table formatting        | ~1K tokens     |
+| **Total**               | **~4K tokens** |
 
 ---
 

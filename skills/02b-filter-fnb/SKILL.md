@@ -22,26 +22,26 @@ relevant ones for normalization and ranking.
 
 ## Input
 
-| File | Source | Content |
-|---|---|---|
-| `runs/YYYY-MM-DD/raw/google_raw.json` | Google Trends | ~7-8 `raw_term` entries |
+| File                                                | Source         | Content                                                           |
+| --------------------------------------------------- | -------------- | ----------------------------------------------------------------- |
+| `runs/YYYY-MM-DD/raw/google_raw.json`               | Google Trends  | ~7-8 `raw_representative` entries                                 |
 | `runs/YYYY-MM-DD/extracted/instagram_keywords.json` | Step 2A output | ~804 records with `extracted_keywords` and `raw_payload.hashtags` |
 
 ## Output
 
-| File | Content |
-|---|---|
-| `runs/YYYY-MM-DD/filtered/google_filtered.json` | Google records with non-F&B removed + `_filter` metadata |
-| `runs/YYYY-MM-DD/filtered/instagram_filtered.json` | Instagram records with non-F&B keywords removed, `extracted_keywords` + `raw_payload.hashtags` merged into unified `terms` field (each term is `{"text":"...", "source":"keyword|hashtag"}`) + `_filter` metadata |
+| File                                               | Content                                                                                                                                                                          |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| `runs/YYYY-MM-DD/filtered/google_filtered.json`    | Google records with non-F&B removed + `_filter` metadata                                                                                                                         |
+| `runs/YYYY-MM-DD/filtered/instagram_filtered.json` | Instagram records with non-F&B keywords removed, `extracted_keywords` + `raw_payload.hashtags` merged into unified `terms` field (each term is `{"text":"...", "source":"keyword | hashtag"}`) + `\_filter` metadata |
 
 ## Project Paths
 
-| Path | Purpose |
-|---|---|
-| `runs/YYYY-MM-DD/raw/google_raw.json` | Input: raw Google Trends records |
+| Path                                                | Purpose                                |
+| --------------------------------------------------- | -------------------------------------- |
+| `runs/YYYY-MM-DD/raw/google_raw.json`               | Input: raw Google Trends records       |
 | `runs/YYYY-MM-DD/extracted/instagram_keywords.json` | Input: records with extracted_keywords |
-| `runs/YYYY-MM-DD/filtered/google_filtered.json` | Output: filtered Google records |
-| `runs/YYYY-MM-DD/filtered/instagram_filtered.json` | Output: filtered Instagram records |
+| `runs/YYYY-MM-DD/filtered/google_filtered.json`     | Output: filtered Google records        |
+| `runs/YYYY-MM-DD/filtered/instagram_filtered.json`  | Output: filtered Instagram records     |
 
 ---
 
@@ -51,7 +51,7 @@ relevant ones for normalization and ranking.
 
 #### Google Trends
 
-Read `raw/google_raw.json`. Extract all `raw_term` values from the `records` array.
+Read `raw/google_raw.json`. Extract all `raw_representative` values from the `records` array.
 These are the terms to classify.
 
 #### Instagram Keywords
@@ -100,6 +100,7 @@ Your job: classify each term below as F&B-related or not.
 ## F&B definition
 
 A term IS F&B if it relates to:
+
 - Food, drinks, beverages, cuisine, dishes, ingredients
 - Restaurants, cafes, bars, dining formats — both as concepts (e.g. 放題, omakase) AND as specific venues that are well-known or currently trending in HK food conversations (e.g. 壽司郎, 麥當勞, 九記牛腩, a viral hotpot spot). When in doubt, keep the term — downstream normalization will handle borderline cases.
 - Cooking styles, food culture, food preparation methods
@@ -109,6 +110,7 @@ A term IS F&B if it relates to:
 - Food-related events or festivals (e.g. 美食博覽, wine fair)
 
 A term is NOT F&B if it is:
+
 - Infrastructure, transport (e.g. 港珠澳大橋, bridges, highways, MTR stations)
 - TV channels, sports, entertainment (e.g. cctv 5, NBA, concert)
 - General retail/shopping not food-specific (e.g. 手袋, clothing, electronics)
@@ -121,9 +123,11 @@ A term is NOT F&B if it is:
 ## Terms to classify
 
 ### Google Trends:
+
 {GOOGLE_TERMS}
 
 ### Instagram terms — extracted keywords + hashtags (frequency):
+
 {INSTAGRAM_TERMS}
 
 ## Output format
@@ -133,16 +137,17 @@ Return ONLY a JSON object. No markdown, no explanation.
 ```json
 {
   "terms": [
-    {"term": "肯德基", "source": "google", "is_fnb": true},
-    {"term": "港珠澳大橋", "source": "google", "is_fnb": false},
-    {"term": "cctv 5", "source": "google", "is_fnb": false},
-    {"term": "沙嗲拼盤", "source": "instagram", "is_fnb": true},
-    {"term": "唱K", "source": "instagram", "is_fnb": false}
+    { "term": "肯德基", "source": "google", "is_fnb": true },
+    { "term": "港珠澳大橋", "source": "google", "is_fnb": false },
+    { "term": "cctv 5", "source": "google", "is_fnb": false },
+    { "term": "沙嗲拼盤", "source": "instagram", "is_fnb": true },
+    { "term": "唱K", "source": "instagram", "is_fnb": false }
   ]
 }
 ```
 
 Rules:
+
 - `term` must match the input term exactly.
 - `source` must be `"google"` or `"instagram"`.
 - `is_fnb` is `true` if the term is F&B-related, `false` otherwise.
@@ -171,7 +176,7 @@ records = raw.get('records', [])
 kept = []
 dropped = []
 for r in records:
-    term = r.get('raw_term', '')
+    term = r.get('raw_representative', '')
     if classifications.get(term, True):  # fail-open: keep if not in results
         kept.append(r)
     else:
@@ -310,26 +315,26 @@ NOT used in the filter decision itself, but is preserved for Step 5 ranking.
 
 ## Error Handling
 
-| Scenario | Action |
-|---|---|
-| `google_raw.json` missing | Skip Google filter, proceed with Instagram only. |
-| `instagram_keywords.json` missing | Skip Instagram filter, proceed with Google only. |
-| Both inputs missing | Abort. Nothing to filter. |
-| LLM classification fails | Fail-open: keep all terms, write unfiltered output. |
-| LLM returns malformed JSON | Retry once. If still failing, fail-open. |
-| No terms to classify (empty inputs) | Skip step, write empty filtered files. |
+| Scenario                            | Action                                              |
+| ----------------------------------- | --------------------------------------------------- |
+| `google_raw.json` missing           | Skip Google filter, proceed with Instagram only.    |
+| `instagram_keywords.json` missing   | Skip Instagram filter, proceed with Google only.    |
+| Both inputs missing                 | Abort. Nothing to filter.                           |
+| LLM classification fails            | Fail-open: keep all terms, write unfiltered output. |
+| LLM returns malformed JSON          | Retry once. If still failing, fail-open.            |
+| No terms to classify (empty inputs) | Skip step, write empty filtered files.              |
 
 ---
 
 ## Token Budget
 
-| Item | Estimate |
-|---|---|
-| Google Trends terms (~8) | negligible |
-| Instagram terms — keywords + hashtags (~500-800 unique) | ~8K chars |
-| Classification prompt + instructions | ~3K chars |
-| JSON response (~800 terms) | ~20K chars output |
-| **Total** | **~35K tokens** |
+| Item                                                    | Estimate          |
+| ------------------------------------------------------- | ----------------- |
+| Google Trends terms (~8)                                | negligible        |
+| Instagram terms — keywords + hashtags (~500-800 unique) | ~8K chars         |
+| Classification prompt + instructions                    | ~3K chars         |
+| JSON response (~800 terms)                              | ~20K chars output |
+| **Total**                                               | **~35K tokens**   |
 
 ---
 

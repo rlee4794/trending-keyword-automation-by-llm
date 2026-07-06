@@ -224,7 +224,7 @@ def run(date_str: str, skip_unmatched: bool = False) -> None:
             data = json.load(f)
 
         for rec in data.get("records", []):
-            rt = rec.get("raw_term", "")
+            rt = rec.get("raw_representative", "")
             if not rt:
                 continue
             ct = _clean_term(rt)
@@ -247,7 +247,7 @@ def run(date_str: str, skip_unmatched: bool = False) -> None:
                 if key not in seen_unmatched:
                     seen_unmatched.add(key)
                     unmatched[len(unmatched)] = {
-                        "raw_term": rt,
+                        "raw_representative": rt,
                         "platform": "google",
                         "suggested_cleanup_term": ct,
                     }
@@ -317,7 +317,7 @@ def run(date_str: str, skip_unmatched: bool = False) -> None:
                     if key not in seen_unmatched:
                         seen_unmatched.add(key)
                         unmatched[len(unmatched)] = {
-                            "raw_term": term_text,
+                            "raw_representative": term_text,
                             "platform": "instagram",
                             "suggested_cleanup_term": ct,
                         }
@@ -369,7 +369,7 @@ def run(date_str: str, skip_unmatched: bool = False) -> None:
             _ensure_dir(unmatched_path)
             with unmatched_path.open("w", encoding="utf-8", newline="") as f:
                 fieldnames = [
-                    "raw_term", "platform", "suggested_cleanup_term",
+                    "raw_representative", "platform", "suggested_cleanup_term",
                     "review_status", "review_action", "target_canonical_key", "review_note",
                 ]
                 w = csv.DictWriter(f, fieldnames=fieldnames)
@@ -390,7 +390,7 @@ def run(date_str: str, skip_unmatched: bool = False) -> None:
         else:
             _ensure_dir(unmatched_path)
             with unmatched_path.open("w", encoding="utf-8", newline="") as f:
-                f.write("raw_term,platform,suggested_cleanup_term,review_status,review_action,target_canonical_key,review_note\n")
+                f.write("raw_representative,platform,suggested_cleanup_term,review_status,review_action,target_canonical_key,review_note\n")
             print(f"  unmatched_review_queue.csv: 0 terms (all matched)", file=sys.stderr)
     else:
         print(f"  (skipped unmatched_review_queue.csv)", file=sys.stderr)

@@ -17,6 +17,7 @@ Fetch today's social media data from two platforms via Apify actors, then
 normalize the raw Apify output into the pipeline's standard record format.
 
 Two sub-steps:
+
 1. **Fetch** — trigger 5 parallel Apify actor runs (1 Google Trends + 4 Instagram hashtags), poll until complete, save raw Apify JSON
 2. **Normalize** — transform Apify raw schemas into pipeline-normalized `google_raw.json` and `instagram_raw.json` with unified record structure
 
@@ -26,11 +27,11 @@ None (reads config files and env var).
 
 ## Output
 
-| File | Content |
-|---|---|
-| `runs/YYYY-MM-DD/raw/google_raw.json` | Normalized Google Trends records |
+| File                                     | Content                                                     |
+| ---------------------------------------- | ----------------------------------------------------------- |
+| `runs/YYYY-MM-DD/raw/google_raw.json`    | Normalized Google Trends records                            |
 | `runs/YYYY-MM-DD/raw/instagram_raw.json` | Normalized + merged Instagram records (4 hashtags → 1 file) |
-| `runs/YYYY-MM-DD/raw/_apify/` | Raw Apify JSON preserved as single source of truth |
+| `runs/YYYY-MM-DD/raw/_apify/`            | Raw Apify JSON preserved as single source of truth          |
 
 ### Output schema
 
@@ -49,7 +50,7 @@ Both files share the same top-level structure:
   },
   "records": [
     {
-      "raw_term": "珍珠奶茶",
+      "raw_representative": "珍珠奶茶",
       "source_kind": "trending_search" | "hashtag",
       "current_volume": 85,
       "raw_payload": { ... }
@@ -60,35 +61,35 @@ Both files share the same top-level structure:
 
 **Google Trends record fields:**
 
-| Field | Source (Apify raw) | Notes |
-|---|---|---|
-| `raw_term` | `term` | The trending search term |
-| `source_kind` | fixed: `"trending_search"` | |
-| `current_volume` | `trend_volume_raw` | Default 0 if missing |
-| `raw_payload` | entire Apify item | Original data preserved |
+| Field                | Source (Apify raw)         | Notes                    |
+| -------------------- | -------------------------- | ------------------------ |
+| `raw_representative` | `term`                     | The trending search term |
+| `source_kind`        | fixed: `"trending_search"` |                          |
+| `current_volume`     | `trend_volume_raw`         | Default 0 if missing     |
+| `raw_payload`        | entire Apify item          | Original data preserved  |
 
 **Instagram record fields:**
 
-| Field | Source (Apify raw) | Notes |
-|---|---|---|
-| `raw_term` | search hashtag (e.g. `#hkfood`) | The hashtag used for this scrape |
-| `source_kind` | fixed: `"hashtag"` | |
-| `current_volume` | fixed: `1` per **unique** post | Each post is counted once across all days; posts whose URL has been seen in the previous 6 days are excluded (see Cross-Day Dedup below) |
-| `raw_payload` | transformed Apify item | See fields below |
+| Field                | Source (Apify raw)              | Notes                                                                                                                                    |
+| -------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `raw_representative` | search hashtag (e.g. `#hkfood`) | The hashtag used for this scrape                                                                                                         |
+| `source_kind`        | fixed: `"hashtag"`              |                                                                                                                                          |
+| `current_volume`     | fixed: `1` per **unique** post  | Each post is counted once across all days; posts whose URL has been seen in the previous 6 days are excluded (see Cross-Day Dedup below) |
+| `raw_payload`        | transformed Apify item          | See fields below                                                                                                                         |
 
 `raw_payload` for Instagram:
 
-| Field | Source (Apify raw) | Notes |
-|---|---|---|
-| `caption_snippet` | `caption` | Truncated to 500 chars |
-| `hashtags` | `hashtags` | Array of hashtag strings |
-| `likes` | `like_count` | Default 0 |
-| `comments` | `comment_count` | Default 0 |
-| `engagement_hint` | computed | `"high"` / `"medium"` / `"low"` based on likes + comments×2 |
-| `geo` | fixed: `"HK"` | |
-| `taken_at_timestamp` | `taken_at_timestamp` | |
-| `url` | `url` | |
-| `reshare_count` | `reshare_count` | |
+| Field                | Source (Apify raw)   | Notes                                                       |
+| -------------------- | -------------------- | ----------------------------------------------------------- |
+| `caption_snippet`    | `caption`            | Truncated to 500 chars                                      |
+| `hashtags`           | `hashtags`           | Array of hashtag strings                                    |
+| `likes`              | `like_count`         | Default 0                                                   |
+| `comments`           | `comment_count`      | Default 0                                                   |
+| `engagement_hint`    | computed             | `"high"` / `"medium"` / `"low"` based on likes + comments×2 |
+| `geo`                | fixed: `"HK"`        |                                                             |
+| `taken_at_timestamp` | `taken_at_timestamp` |                                                             |
+| `url`                | `url`                |                                                             |
+| `reshare_count`      | `reshare_count`      |                                                             |
 
 ### Cross-Day Dedup (Instagram)
 
@@ -114,6 +115,7 @@ recording the cutoff and how many posts were skipped. Set `--max-age-days 0`
 to disable the filter.
 
 This means:
+
 - Each post appears in exactly one day's `instagram_raw.json` (its first)
 - `current_volume = 1` reflects a unique post, not a duplicate
 - Posts older than max_age_days are excluded entirely
@@ -126,13 +128,13 @@ The `instagram_raw.json` output includes `_dedup` and `_age_filter` metadata blo
 
 All paths are relative to the skill directory (`skills/01-fetch/`) unless noted.
 
-| Path | Purpose |
-|---|---|
-| `../../config/apify_actors_v1.json` | Apify actor IDs and dataset config |
-| `../../config/social_listening_v1.json` | Platform seeds, weights, thresholds |
-| `../../scripts/apify_fetch.sh` | Shell script: trigger actor, poll, download dataset |
-| `../../scripts/normalize_raw.py` | Python script: transform Apify raw → pipeline format |
-| `../../runs/YYYY-MM-DD/raw/` | Output directory for this step |
+| Path                                    | Purpose                                              |
+| --------------------------------------- | ---------------------------------------------------- |
+| `../../config/apify_actors_v1.json`     | Apify actor IDs and dataset config                   |
+| `../../config/social_listening_v1.json` | Platform seeds, weights, thresholds                  |
+| `../../scripts/apify_fetch.sh`          | Shell script: trigger actor, poll, download dataset  |
+| `../../scripts/normalize_raw.py`        | Python script: transform Apify raw → pipeline format |
+| `../../runs/YYYY-MM-DD/raw/`            | Output directory for this step                       |
 
 ---
 
@@ -279,7 +281,7 @@ Writes:
 
 Behavior:
 - Compute window = target_date ±1 day (single-day snapshot window)
-- Google: map term→raw_term, trend_volume_raw→current_volume
+- Google: map term→raw_representative, trend_volume_raw→current_volume
 - Instagram: merge 4 hashtag files, map caption→caption_snippet (500 chars),
   compute engagement_hint, set current_volume=1 per post
 - Cross-day dedup (Instagram): load all URLs from previous 6 days'
@@ -327,27 +329,27 @@ else:
 
 ## Error Handling
 
-| Scenario | Action |
-|---|---|
-| `APIFY_TOKEN` not set | Abort. Tell user to set the env var. |
-| Config files missing | Abort. Config is required. |
-| All 5 actors fail | Abort. Nothing to process. |
-| Some actors fail | Continue with available data. Log warnings. |
-| Single actor times out | Retry once. If still failing, skip that actor. |
-| Apify returns empty dataset | Write `[]`, continue. Empty data is valid. |
-| normalize_raw.py fails | Abort. Check script output for details. |
-| Output directory not writable | Abort. Check permissions. |
+| Scenario                      | Action                                         |
+| ----------------------------- | ---------------------------------------------- |
+| `APIFY_TOKEN` not set         | Abort. Tell user to set the env var.           |
+| Config files missing          | Abort. Config is required.                     |
+| All 5 actors fail             | Abort. Nothing to process.                     |
+| Some actors fail              | Continue with available data. Log warnings.    |
+| Single actor times out        | Retry once. If still failing, skip that actor. |
+| Apify returns empty dataset   | Write `[]`, continue. Empty data is valid.     |
+| normalize_raw.py fails        | Abort. Check script output for details.        |
+| Output directory not writable | Abort. Check permissions.                      |
 
 ---
 
 ## Token Budget
 
-| Item | Estimate |
-|---|---|
-| Shell exec calls (fetch + normalize) | 0 LLM tokens |
-| Config reading | ~1K tokens |
-| Verification output | ~500 tokens |
-| **Total** | **~1.5K tokens** |
+| Item                                 | Estimate         |
+| ------------------------------------ | ---------------- |
+| Shell exec calls (fetch + normalize) | 0 LLM tokens     |
+| Config reading                       | ~1K tokens       |
+| Verification output                  | ~500 tokens      |
+| **Total**                            | **~1.5K tokens** |
 
 This step is almost entirely shell/Python execution. Agent only reads config
 and verifies results.
