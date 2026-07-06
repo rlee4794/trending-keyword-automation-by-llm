@@ -13,6 +13,15 @@
       "maxItems": 200
     }
   },
+  "instagram_users": {
+    "actor_id": "queenlike_xystos/instagram-posts-reels-scraper---no-cookies",
+    "dataset_key": "defaultDatasetId",
+    "result_format": "dataset_items",
+    "input": {
+      "username": "",
+      "maxPosts": 200
+    }
+  },
   "threads": {
     "actor_id": "automation-lab/threads-scraper",
     "dataset_key": "defaultDatasetId",

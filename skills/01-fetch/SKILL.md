@@ -17,8 +17,7 @@ Fetch today's social media data from two platforms via Apify actors, then
 normalize the raw Apify output into the pipeline's standard record format.
 
 Two sub-steps:
-
-1. **Fetch** — trigger 5 parallel Apify actor runs (1 Google Trends + 4 Instagram hashtags), poll until complete, save raw Apify JSON
+1. **Fetch** — trigger 15 parallel Apify actor runs (1 Google Trends + 4 Instagram hashtags + 10 Instagram user posts), poll until complete, save raw Apify JSON
 2. **Normalize** — transform Apify raw schemas into pipeline-normalized `google_raw.json` and `instagram_raw.json` with unified record structure
 
 ## Input
@@ -70,26 +69,27 @@ Both files share the same top-level structure:
 
 **Instagram record fields:**
 
-| Field                | Source (Apify raw)              | Notes                                                                                                                                    |
-| -------------------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `raw_representative` | search hashtag (e.g. `#hkfood`) | The hashtag used for this scrape                                                                                                         |
-| `source_kind`        | fixed: `"hashtag"`              |                                                                                                                                          |
-| `current_volume`     | fixed: `1` per **unique** post  | Each post is counted once across all days; posts whose URL has been seen in the previous 6 days are excluded (see Cross-Day Dedup below) |
-| `raw_payload`        | transformed Apify item          | See fields below                                                                                                                         |
+| Field | Source (Apify raw) | Notes |
+|---|---|---|
+| `raw_term` | search hashtag (e.g. `#hkfood`) or username (e.g. `@girlsfoodies`) | The hashtag/user used for this scrape |
+| `source_kind` | fixed: `"hashtag"` or `"user_post"` | `hashtag` for hashtag scrapes, `user_post` for user-post scrapes |
+| `current_volume` | fixed: `1` per **unique** post | Each post is counted once across all days; posts whose URL has been seen in the previous 6 days are excluded (see Cross-Day Dedup below) |
+| `raw_payload` | transformed Apify item | See fields below |
 
-`raw_payload` for Instagram:
+`raw_payload` for Instagram (both `hashtag` and `user_post`):
 
-| Field                | Source (Apify raw)   | Notes                                                       |
-| -------------------- | -------------------- | ----------------------------------------------------------- |
-| `caption_snippet`    | `caption`            | Truncated to 500 chars                                      |
-| `hashtags`           | `hashtags`           | Array of hashtag strings                                    |
-| `likes`              | `like_count`         | Default 0                                                   |
-| `comments`           | `comment_count`      | Default 0                                                   |
-| `engagement_hint`    | computed             | `"high"` / `"medium"` / `"low"` based on likes + comments×2 |
-| `geo`                | fixed: `"HK"`        |                                                             |
-| `taken_at_timestamp` | `taken_at_timestamp` |                                                             |
-| `url`                | `url`                |                                                             |
-| `reshare_count`      | `reshare_count`      |                                                             |
+| Field | Source (Apify raw) | Notes |
+|---|---|---|
+| `caption_snippet` | `caption` | Truncated to 500 chars |
+| `hashtags` | `hashtags` | Array of hashtag strings |
+| `likes` | `like_count` | Default 0 |
+| `comments` | `comment_count` | Default 0 |
+| `engagement_hint` | computed | `"high"` / `"medium"` / `"low"` based on likes + comments×2 |
+| `geo` | fixed: `"HK"` | |
+| `taken_at_timestamp` | `taken_at_timestamp` | |
+| `url` | `url` | |
+| `reshare_count` | `reshare_count` | |
+| `source_username` | username (user_post only) | The Instagram username that posted this content |
 
 ### Cross-Day Dedup (Instagram)
 
@@ -178,17 +178,20 @@ Load actor IDs and seeds from config files:
 # Read from config/social_listening_v1.json
 GOOGLE_SEEDS=$(python3 -c "import json; print(' '.join(json.load(open('config/social_listening_v1.json'))['broad_seeds']['google']))")
 INSTAGRAM_SEEDS=$(python3 -c "import json; print(' '.join(json.load(open('config/social_listening_v1.json'))['broad_seeds']['instagram']))")
+INSTAGRAM_USERS=$(python3 -c "import json; print(' '.join(json.load(open('config/social_listening_v1.json'))['broad_seeds']['instagram_users']))")
 
 # Read actor config from config/apify_actors_v1.json
 GOOGLE_ACTOR_ID=$(python3 -c "import json; print(json.load(open('config/apify_actors_v1.json'))['google']['actor_id'])")
 GOOGLE_INPUT=$(python3 -c "import json; print(json.dumps(json.load(open('config/apify_actors_v1.json'))['google']['input']))")
 INSTAGRAM_ACTOR_ID=$(python3 -c "import json; print(json.load(open('config/apify_actors_v1.json'))['instagram']['actor_id'])")
 INSTAGRAM_INPUT=$(python3 -c "import json; print(json.dumps(json.load(open('config/apify_actors_v1.json'))['instagram']['input']))")
+IG_USER_ACTOR_ID=$(python3 -c "import json; print(json.load(open('config/apify_actors_v1.json'))['instagram_users']['actor_id'])")
+IG_USER_INPUT=$(python3 -c "import json; print(json.dumps(json.load(open('config/apify_actors_v1.json'))['instagram_users']['input']))")
 ```
 
 ### 3. Fetch from Apify (Parallel)
 
-Run 5 actors in parallel using `scripts/apify_fetch.sh`:
+Run 15 actors in parallel using `scripts/apify_fetch.sh`:
 
 ```bash
 SCRIPTS="scripts"
@@ -200,7 +203,7 @@ bash "${SCRIPTS}/apify_fetch.sh" \
   "${RUN_DIR}/raw/_apify/google_apify_raw.json" \
   300 10 &
 
-# Instagram (4 hashtags, parallel)
+# Instagram hashtags (4 hashtags, parallel)
 for seed in $INSTAGRAM_SEEDS; do
   hashtag="${seed#\#}"  # strip leading #
   # Use md5 prefix to avoid filename collision on CJK-only hashtags
@@ -214,7 +217,19 @@ for seed in $INSTAGRAM_SEEDS; do
     300 10 &
 done
 
-# Wait for all 5 to complete
+# Instagram user posts (10 users, parallel)
+for username in $INSTAGRAM_USERS; do
+  safe_name=$(echo "$username" | python3 -c "import sys; s=sys.stdin.read().strip(); print(''.join(c if c.isalnum() else '_' for c in s))")
+  # Merge username into actor input template
+  ig_user_input=$(echo "$IG_USER_INPUT" | python3 -c "import json,sys; d=json.load(sys.stdin); d['username']='${username}'; print(json.dumps(d))")
+  bash "${SCRIPTS}/apify_fetch.sh" \
+    "$IG_USER_ACTOR_ID" \
+    "$ig_user_input" \
+    "${RUN_DIR}/raw/_apify/ig_user_${safe_name}_apify_raw.json" \
+    300 10 &
+done
+
+# Wait for all 15 to complete
 wait
 ```
 
@@ -272,6 +287,7 @@ python3 "${SCRIPTS}/normalize_raw.py" \
 Reads:
   runs/{date}/raw/_apify/google_apify_raw.json
   runs/{date}/raw/_apify/ig_*.json
+  runs/{date}/raw/_apify/ig_user_*.json
   runs/{T-6}…{T-1}/raw/instagram_raw.json (previous 6 days, for cross-day dedup)
   config/social_listening_v1.json (for broad_seed_group metadata)
 
@@ -281,9 +297,11 @@ Writes:
 
 Behavior:
 - Compute window = target_date ±1 day (single-day snapshot window)
-- Google: map term→raw_representative, trend_volume_raw→current_volume
-- Instagram: merge 4 hashtag files, map caption→caption_snippet (500 chars),
+- Google: map term→raw_term, trend_volume_raw→current_volume
+- Instagram: merge all hashtag + user-post files, map caption→caption_snippet (500 chars),
   compute engagement_hint, set current_volume=1 per post
+  - Hashtag posts: source_kind="hashtag", raw_term="#<hashtag>"
+  - User posts: source_kind="user_post", raw_term="@<username>", extra source_username field
 - Cross-day dedup (Instagram): load all URLs from previous 6 days'
   instagram_raw.json; exclude today's posts whose URL has already been seen.
   Each post is counted only on its first appearance.

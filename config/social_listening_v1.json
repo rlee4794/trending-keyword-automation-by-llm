@@ -24,6 +24,18 @@
   },
   "broad_seeds": {
     "google": ["香港美食", "hk food"],
-    "instagram": ["#hkfood", "#hkfoodie", "#香港美食", "#相機食先"]
+    "instagram": ["#hkfood", "#hkfoodie", "#香港美食", "#相機食先"],
+    "instagram_users": [
+      "girlsfoodies",
+      "weekendweekly",
+      "andthenhk",
+      "foodiehk",
+      "talkfood",
+      "ygt1016",
+      "lemonmediahk",
+      "hkfood_station",
+      "hkfoodpage",
+      "poorjjfoodie"
+    ]
   }
 }

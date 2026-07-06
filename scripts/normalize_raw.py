@@ -4,6 +4,7 @@
 Reads:
   runs/{date}/raw/_apify/google_apify_raw.json
   runs/{date}/raw/_apify/ig_*.json
+  runs/{date}/raw/_apify/ig_user_*.json
   config/social_listening_v1.json (for broad_seed_group metadata)
 
 Writes:
@@ -179,6 +180,42 @@ def _normalise_instagram_posts(
     return records
 
 
+def _normalise_instagram_user_posts(
+    raw_items: list[dict[str, Any]],
+    username: str,
+) -> list[dict[str, Any]]:
+    """Convert Instagram user-posts scraper output into pipeline-normalised records.
+
+    The user-posts scraper (queenlike_xystos/instagram-posts-reels-scraper---no-cookies)
+    returns posts from a specific user's feed. Each post is treated as a unique signal
+    from a curated foodie source (source_kind = "user_post").
+    """
+    records: list[dict[str, Any]] = []
+    for item in raw_items:
+        caption = item.get("caption") or ""
+        likes = item.get("like_count", 0) or 0
+        comments = item.get("comment_count", 0) or 0
+        records.append({
+            "raw_term": f"@{username}",
+            "source_kind": "user_post",
+            "current_volume": 1,
+            "previous_volume": None,
+            "raw_payload": {
+                "engagement_hint": _engagement_tier(likes, comments),
+                "geo": "HK",
+                "likes": likes,
+                "comments": comments,
+                "taken_at_timestamp": item.get("taken_at_timestamp"),
+                "hashtags": item.get("hashtags", []),
+                "url": item.get("url"),
+                "reshare_count": item.get("reshare_count"),
+                "caption_snippet": caption[:500] if caption else "",
+                "source_username": username,
+            },
+        })
+    return records
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -230,9 +267,10 @@ def main() -> None:
     else:
         print("google: SKIPPED (no _apify data)")
 
-    # --- Instagram (merge all hashtag files, with cross-day dedup + age filter) ---
-    ig_files = sorted(glob(str(apify_dir / "ig_*_apify_raw.json")))
-    if ig_files:
+    # --- Instagram (merge all hashtag + user-post files, with cross-day dedup + age filter) ---
+    ig_hashtag_files = sorted(glob(str(apify_dir / "ig_*_apify_raw.json")))
+    ig_user_files = sorted(glob(str(apify_dir / "ig_user_*_apify_raw.json")))
+    if ig_hashtag_files or ig_user_files:
         # Compute age cutoff (if max_age_days > 0)
         age_cutoff = None
         if max_age_days > 0:
@@ -250,7 +288,7 @@ def main() -> None:
         all_records: list[dict[str, Any]] = []
         dedup_skipped = 0
         age_skipped = 0
-        for ig_file in ig_files:
+        for ig_file in ig_hashtag_files:
             with open(ig_file, encoding="utf-8") as f:
                 ig_raw_items = json.load(f)
             if not isinstance(ig_raw_items, list):
@@ -259,9 +297,7 @@ def main() -> None:
             stem = Path(ig_file).stem  # ig_hkfood_apify_raw
             hashtag = stem.replace("ig_", "").replace("_apify_raw", "")
             records = _normalise_instagram_posts(ig_raw_items, hashtag)
-            # Age filter + cross-day dedup
             for rec in records:
-                # Age filter: discard posts older than max_age_days
                 if age_cutoff is not None:
                     taken_at = _parse_timestamp(
                         (rec.get("raw_payload") or {}).get("taken_at_timestamp")
@@ -269,7 +305,30 @@ def main() -> None:
                     if _is_too_old(taken_at, age_cutoff):
                         age_skipped += 1
                         continue
-                # Cross-day dedup: skip posts whose URL was already seen
+                url = (rec.get("raw_payload") or {}).get("url", "")
+                if url and url in seen_urls:
+                    dedup_skipped += 1
+                    continue
+                all_records.append(rec)
+
+        # Process user-post files
+        for ig_file in ig_user_files:
+            with open(ig_file, encoding="utf-8") as f:
+                ig_raw_items = json.load(f)
+            if not isinstance(ig_raw_items, list):
+                ig_raw_items = []
+            # Extract username from filename: ig_user_<username>_apify_raw.json
+            stem = Path(ig_file).stem  # ig_user_girlsfoodies_apify_raw
+            username = stem.replace("ig_user_", "").replace("_apify_raw", "")
+            records = _normalise_instagram_user_posts(ig_raw_items, username)
+            for rec in records:
+                if age_cutoff is not None:
+                    taken_at = _parse_timestamp(
+                        (rec.get("raw_payload") or {}).get("taken_at_timestamp")
+                    )
+                    if _is_too_old(taken_at, age_cutoff):
+                        age_skipped += 1
+                        continue
                 url = (rec.get("raw_payload") or {}).get("url", "")
                 if url and url in seen_urls:
                     dedup_skipped += 1
