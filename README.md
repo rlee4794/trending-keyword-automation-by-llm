@@ -1,130 +1,118 @@
 # Trending Keyword Automation By LLM
 
-## OpenClaw Setup
+HK F&B social media trending keyword discovery and ranking pipeline.
+Runs daily via OpenClaw agent-driven pipeline: fetches Google Trends +
+Instagram (hashtags + curated foodie accounts) data via Apify, extracts
+and filters F&B keywords, normalizes against a canonical mapping,
+reviews unmatched terms via LLM, then ranks and presents weekly trends.
 
-Use OpenClaw as job runner for this repo. Do not upload whole project on every run if OpenClaw can already access repo checkout.
+## Architecture
 
-Primary product loop:
+The pipeline is **OpenClaw agent-driven** — the agent orchestrates each
+step by reading skill files, executing shell/Python scripts, and
+performing LLM classification where needed. No monolithic Python CLI.
 
-- daily cron job refreshes weekly social-listening result
-- when user asks for weekly FnB trending keywords, OpenClaw reads latest result and returns it
-- trending and scoring rules stay the same as defined in the implementation plan; only the serving contract is being simplified
-
-### Pipeline flow
-
-Live mode runs the full social-listening pipeline:
-
-```text
-Apify fetch → normalize → LLM review → update mapping → re-normalize → ranking
+```
+skills/SKILL.md          ← Main entry point
+├── skills/01-fetch/        Step 1: Apify fetch + normalize
+├── skills/02a-extract-keywords/  Step 2A: IG keyword extraction (LLM)
+├── skills/02b-filter-fnb/        Step 2B: F&B binary filter (LLM)
+├── skills/03-normalize/          Step 3: Exact-match normalization
+├── skills/04-review/             Step 4: LLM review of unmatched terms
+├── skills/05-ranking/            Step 5: Weekly ranking (14-day window)
+└── skills/06-present/            Step 6: Present results
 ```
 
-Flow details:
+## Data Sources
 
-- Apify fetches raw platform payloads for Google Trends and Instagram.
-- Normalization matches raw terms against `data/mappings/canonical_mapping.csv` and writes an unmatched review queue when needed.
-- LLM review classifies unmatched terms as `CREATE`, `MERGE`, or `DISCARD`.
-- Accepted `CREATE` and `MERGE` decisions append rows to `data/mappings/canonical_mapping.csv`.
-- If the mapping changed, the same raw payloads are normalized again so new mappings affect the current run.
-- Ranking scores the normalized keywords and writes the weekly output artifact.
+| Source | Method | Actor / Details |
+|--------|--------|-----------------|
+| Google Trends | Apify | `data_xplorer~google-trends-trending-now` |
+| IG Hashtags | Apify | 4 hashtags: #hkfood, #hkfoodie, #香港美食, #相機食先 |
+| IG Users | Apify | 10 curated HK foodie accounts (see config) |
+| Threads | Config only | Actor configured, not yet wired into pipeline |
 
-Fixture mode is wiring-only. It uses the existing ranked fixture CSV and does not call Apify, run LLM review, update mappings, re-normalize raw data, or recompute rankings.
+## Key Assets
 
-### What OpenClaw needs
+| Path | Purpose | Size |
+|------|---------|------|
+| `data/mappings/canonical_mapping.csv` | Core mapping table (6 columns: canonical_key, match_value, display_term, enriched_description, category, potential) | ~1,134 rows |
+| `scripts/apify_fetch.sh` | Apify actor runner (trigger → poll → download) | Shell |
+| `scripts/normalize_raw.py` | Apify raw → pipeline format + cross-day dedup + age filter | Python |
+| `scripts/exact_match.py` | Deterministic canonical mapping lookup | Python |
+| `scripts/backfill_descriptions.py` | One-shot enriched_description backfill | Python |
+| `config/apify_actors_v1.json` | Apify actor IDs and input templates | JSON |
+| `config/social_listening_v1.json` | Platform seeds, weights, thresholds | JSON |
+| `config/instagram_scoring.json` | IG engagement weights and log-normalisation params | JSON |
+| `config/google_scoring.json` | Google scoring params | JSON |
+| `config/ranking.json` | Platform weights, bonus, trend direction thresholds | JSON |
 
-Required runtime files:
+## Pipeline Steps
 
-- `pyproject.toml`
-- `src/social_pipeline/cli.py`
-- `src/social_pipeline/pipeline.py`
-- `src/social_pipeline/config.py`
-- `src/social_pipeline/apify.py`
-- `src/social_pipeline/normalize.py`
-- `src/social_pipeline/llm_review.py`
-- `src/social_pipeline/ranking.py`
-- `config/social_listening_v1.json`
-- `config/apify_actors_v1.json`
-- `data/mappings/canonical_mapping.csv`
+### Step 1 — Fetch
+15 parallel Apify actor runs (1 Google Trends + 4 IG hashtags + 10 IG users),
+then `normalize_raw.py` merges and normalizes into `google_raw.json` and
+`instagram_raw.json` with cross-day dedup (6-day lookback) and 30-day age filter.
 
-Optional runtime input:
+### Step 2A — Extract Keywords (LLM)
+Extracts up to 8 F&B keywords per Instagram caption. Batch size: 100 posts.
+Resume-safe: skips already-processed records on restart.
 
-- previous weekly feed JSON, if you want prior output reused for expansion terms and previous-volume comparison
+### Step 2B — Filter F&B (LLM)
+Binary classification of all candidate terms (Google + Instagram) as F&B or
+non-F&B. Fail-open: keeps all terms if classification fails.
 
-Fixture-only input:
+### Step 3 — Normalize (Exact Match)
+Deterministic lookup against `canonical_mapping.csv`. Matched terms grouped
+by canonical key. Unmatched terms queued for Step 4. Zero LLM tokens.
 
-- `examples/social_artifacts/2026-06-22/`
+### Step 4 — LLM Review
+Batch classification of unmatched terms (75/batch): CREATE (new concept),
+MERGE (alias for existing key), or DISCARD (noise). Expands mapping, then
+re-normalizes to produce final `matched_groups.json`.
 
-Not needed for live production runs:
+### Step 5 — Ranking
+Accumulates 14 days of `matched_groups.json`, splits into current-week
+(T-6…T) and previous-week (T-13…T-7) windows, computes per-window platform
+scores, compares to determine trend direction, ranks by composite score.
 
-- `tests/`
-- `docs/`
-- sample artifacts under `examples/`
-- `.pytest_cache/`
+**Scoring:** Instagram 60% + Google 40% + 0.1 dual-platform bonus.
+**Threshold:** composite score ≥ 0.10 for inclusion.
 
-### One-time environment setup
+### Step 6 — Present
+Reads `weekly_fnb_trending.json`, updates `runs/latest` symlink, exports
+CSV files, presents formatted summary.
 
-Run once in the repo root:
+## Output
 
-```powershell
-python -m pip install -e .
-```
+| Artifact | Path |
+|----------|------|
+| Weekly ranked JSON | `runs/YYYY-MM-DD/weekly_fnb_trending.json` (schema v3.0) |
+| Full CSV | `runs/YYYY-MM-DD/weekly_fnb_trending.csv` |
+| High-potential CSV | `runs/YYYY-MM-DD/weekly_fnb_trending_high_potential.csv` |
+| Latest symlink | `runs/latest` → `runs/YYYY-MM-DD` |
 
-If OpenClaw uses a fixed Python path, use that interpreter instead.
+## Current Status
 
-### Fixture mode
+| Metric | Value |
+|--------|-------|
+| Latest run | 2026-07-05 |
+| Accumulated runs | 11 days (2026-06-23 → 2026-07-05) |
+| Keywords ranked | 242 |
+| Score range | 0.10 – 0.73 |
+| Canonical mapping | 1,134 rows |
+| Trend directions | Mostly `new` (cold start — previous-week window still filling) |
 
-Use fixture mode to verify wiring without calling Apify:
+## Environment
 
-```powershell
-python -m social_pipeline.cli --config config/social_listening_v1.json --actor-config config/apify_actors_v1.json --mapping data/mappings/canonical_mapping.csv --mode fixture --fixture-dir examples/social_artifacts/2026-06-22 --previous-feed examples/social_artifacts/2026-06-22/social_trending_2026_06_22.csv --output-dir .tmp_openclaw_run --run-at 2026-06-22T09:00:00+08:00
-```
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `APIFY_TOKEN` | Yes (live mode) | Apify API authentication |
 
-### Live mode
+## Quick Reference
 
-Set `APIFY_TOKEN` in OpenClaw secret/env config before live runs. The LLM review step also expects the OpenClaw agent CLI to be available in the runtime environment.
-
-```powershell
-python -m social_pipeline.cli --config config/social_listening_v1.json --actor-config config/apify_actors_v1.json --mapping data/mappings/canonical_mapping.csv --mode live --previous-feed runs/latest/weekly_fnb_trending.json --output-dir runs --run-at 2026-06-22T09:00:00+08:00
-```
-
-### Current status
-
-Current CLI integration:
-
-- validates required file inputs
-- writes `openclaw_job_request.json`
-- supports fixture mode from ranked fixture CSV
-- supports live mode Apify fetch, raw payload persistence, normalization, LLM review, mapping append, re-normalization, ranking, and weekly JSON output
-- auto-resolves the previous weekly feed from the prior dated run directory when `--previous-feed` is omitted and the file exists
-- updates `runs/latest` to point at the dated run directory
-
-Known limitations:
-
-- LLM review appends mapping rows but does not update review statuses inside `unmatched_review_queue.csv`
-- live LLM review depends on the OpenClaw agent CLI path used by `src/social_pipeline/llm_review.py`
-- fixture mode does not exercise the full live pipeline
-
-### Output artifacts
-
-Primary target artifact:
-
-- `runs/latest/weekly_fnb_trending.json`
-
-Dated run output uses `--output-dir/YYYY-MM-DD/`, for example `runs/2026-06-24/`.
-
-Current implemented outputs:
-
-- `weekly_fnb_trending.json`
-- `openclaw_job_request.json`
-- `raw/google_raw.json` in live mode
-- `raw/instagram_raw.json` in live mode
-- `unmatched_review_queue.csv` when normalization finds unmatched terms
-- LLM review stats in the `weekly_fnb_trending.json` metadata when LLM review runs
-
-`openclaw_job_request.json` records:
-
-- selected mode
-- run timestamp
-- resolved input paths
-- configured actor IDs
-- whether `APIFY_TOKEN` was present for live mode
-- output directory and previous-feed resolution details
+| User says | Action |
+|-----------|--------|
+| "run trending pipeline" | Full live run (Steps 1–6) |
+| "show this week's trends" | Read `runs/latest/weekly_fnb_trending.json` |
+| "run for 2026-06-20" | Live run for a specific date |
