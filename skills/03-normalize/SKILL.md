@@ -66,7 +66,7 @@ This step is **purely deterministic** — zero LLM tokens.
 }
 ```
 
-Instagram platform entries include `engagement_raw` (log-normalised weighted sum of likes/comments/shares across all matching posts) and `engagement_details` (per-post breakdown). `matched_terms` tracks which raw surface terms mapped to this canonical key, with source platform and hashtag status — used by Step 5 for raw term selection. `category` and `potential` are pass-throughs from `canonical_mapping.csv`.
+Instagram platform entries include `engagement_raw` (sum of per-post engagement scores across all matching posts — Step 5 divides by `record_count` to get the per-post average used for scoring) and `engagement_details` (per-post breakdown). `matched_terms` tracks which raw surface terms mapped to this canonical key, with source platform and hashtag status — used by Step 5 for raw term selection. `category` and `potential` are pass-throughs from `canonical_mapping.csv`.
 
 ### unmatched_review_queue.csv schema
 

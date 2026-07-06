@@ -127,12 +127,11 @@ Per window:
     total_records     = sum of record_count across all days
 ```
 
-Then normalize by day count:
+Then normalize:
 
 ```
 avg_daily_volume      = total_volume      / days_with_data
-avg_daily_engagement  = total_engagement  / days_with_data
-avg_daily_posts       = total_posts       / days_with_data
+avg_post_engagement   = total_engagement  / total_posts   (per-post average, not per-day)
 ```
 
 This ensures fair comparison between windows even when some days are missing.
@@ -174,13 +173,19 @@ time Step 5 reads `matched_groups.json`. Each `engagement_detail` includes a
 Total keyword engagement = sum of `post_engagement` across all posts
 matching that canonical key **within this window**.
 
+Average per-post engagement for this window:
+
+```
+avg_post_engagement = total_engagement / total_posts
+```
+
 Platform score (log-normalised across all keywords in this window):
 
 ```
-IG_platform_score = ln(engagement_raw + 1) / ln(max_engagement_raw + 1)
+IG_platform_score = ln(avg_post_engagement + 1) / ln(max_avg_post_engagement + 1)
 ```
 
-where `max_engagement_raw` is the highest `engagement_raw` across ALL
+where `max_avg_post_engagement` is the highest `avg_post_engagement` across ALL
 canonical keys **in this window**.
 
 If a keyword has no Instagram data in this window, `platform_score = 0`.
@@ -484,15 +489,19 @@ for wname in ['current_week', 'previous_week']:
     if days == 0:
         continue
 
-    # Find global maxes for this window (after normalizing by day count)
-    max_eng = 0
+    # Find global maxes for this window
+    # IG: average per-post engagement (total_engagement / total_posts)
+    # Google: average daily volume (total_volume / days)
+    max_avg_eng = 0
     max_vol = 0
     for ck, wk in w['keys'].items():
         ig = wk.get('instagram', {})
         goog = wk.get('google', {})
-        eng = (ig.get('engagement_raw', 0) or 0) / days
+        posts = (ig.get('record_count', 0) or 0)
+        total_eng = (ig.get('engagement_raw', 0) or 0)
+        avg_eng = total_eng / posts if posts > 0 else 0
         vol = (goog.get('current_volume', 0) or 0) / days
-        if eng > max_eng: max_eng = eng
+        if avg_eng > max_avg_eng: max_avg_eng = avg_eng
         if vol > max_vol: max_vol = vol
 
     # Score each key in this window
@@ -500,8 +509,10 @@ for wname in ['current_week', 'previous_week']:
         ig = wk.get('instagram', {})
         goog = wk.get('google', {})
 
-        eng_raw = (ig.get('engagement_raw', 0) or 0) / days
-        ig_score = math.log(eng_raw + 1) / math.log(max_eng + 1) if max_eng > 0 and eng_raw > 0 else 0
+        posts = (ig.get('record_count', 0) or 0)
+        total_eng = (ig.get('engagement_raw', 0) or 0)
+        avg_eng = total_eng / posts if posts > 0 else 0
+        ig_score = math.log(avg_eng + 1) / math.log(max_avg_eng + 1) if max_avg_eng > 0 and avg_eng > 0 else 0
 
         vol = (goog.get('current_volume', 0) or 0) / days
         if vol < min_vol_floor or max_vol == 0:
@@ -515,14 +526,14 @@ for wname in ['current_week', 'previous_week']:
             'potential': wk.get('potential', ''),
             'ig_score': round(ig_score, 4),
             'goog_score': round(goog_score, 4),
-            'ig_eng_raw': round(eng_raw, 1),
+            'ig_eng_raw': round(avg_eng, 1),
             'goog_vol': round(vol, 1),
-            'ig_post_count': (ig.get('record_count', 0) or 0),
+            'ig_post_count': posts,
             'matched_terms': wk.get('matched_terms', {}),
             'platforms_with_data': (1 if ig_score > 0 else 0) + (1 if goog_score > 0 else 0),
         }
 
-    print(f'{wname}: days={days}, max_eng={max_eng:.1f}, max_vol={max_vol:.1f}, scored={len(scores[wname])} keys')
+    print(f'{wname}: days={days}, max_avg_eng={max_avg_eng:.1f}, max_vol={max_vol:.1f}, scored={len(scores[wname])} keys')
 
 # Write scores for next step
 with open('/tmp/step5_scores.json', 'w') as f:
