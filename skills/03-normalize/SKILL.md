@@ -115,7 +115,9 @@ cd PROJECT_ROOT && python3 scripts/exact_match.py --date "$TARGET_DATE"
 ```
 
 This script:
-1. Reads `canonical_mapping.csv` into a `{match_value → canonical_key}` lookup table
+1. Reads `canonical_mapping.csv` into a `{match_value → canonical_key}` lookup table.
+   **First-match-wins**: if a match_value appears for multiple canonical keys, the
+   first occurrence in CSV order wins. Conflicts are printed as WARNING to stderr.
 2. Reads `google_filtered.json` and `instagram_filtered.json`
 3. Loads engagement weights and popular post boost config from `config/instagram_scoring.json`
 4. Extracts candidate terms:

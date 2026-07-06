@@ -423,7 +423,13 @@ Then continue to next batch (go to step 2a).
 ### 3. Merge Decisions → Append canonical_mapping.csv
 
 After all batches complete, merge all `batch_NNN_decisions.csv` files
-and append new mappings to `canonical_mapping.csv`:
+and append new mappings to `canonical_mapping.csv`.
+
+**⚠️ Conflict check before MERGE:** Before appending a MERGE row, verify the
+`match_value` does NOT already belong to a different `canonical_key`. The
+pipeline uses first-match-wins — if a match_value was already assigned to
+key A via a previous run, a MERGE to key B would be silently ignored.
+Flag these as conflicts so the operator can resolve them manually.
 
 ```bash
 python3 -c "
@@ -433,8 +439,8 @@ from pathlib import Path
 MAPPING = Path('data/mappings/canonical_mapping.csv')
 BATCH_DIR = Path('runs/YYYY-MM-DD/batch_decisions')
 
-# Load existing match_values for dedup
-existing_matches = set()
+# Load existing match_values with their canonical_key
+match_to_key = {}  # match_value → canonical_key (first-match-wins)
 existing_keys = {}
 with MAPPING.open() as f:
     for row in csv.DictReader(f):
@@ -442,11 +448,10 @@ with MAPPING.open() as f:
         ck = (row.get('canonical_key') or '').strip()
         dt = (row.get('display_term') or '').strip()
         desc = (row.get('enriched_description') or '').strip()
-        cat = (row.get('category') or '').strip()
-        if mv:
-            existing_matches.add(mv)
+        if mv and mv not in match_to_key:
+            match_to_key[mv] = ck
         if ck and ck not in existing_keys:
-            existing_keys[ck] = {'display_term': dt, 'enriched_description': desc, 'category': cat, 'potential': (row.get('potential') or '').strip()}
+            existing_keys[ck] = {'display_term': dt, 'enriched_description': desc, 'category': (row.get('category') or '').strip(), 'potential': (row.get('potential') or '').strip()}
 
 # Collect all decisions
 decisions = []
@@ -462,12 +467,14 @@ if content and not content.endswith('\n'):
 
 # Append new mappings
 added = 0
+conflicts = 0
 with MAPPING.open('a', newline='') as f:
     w = csv.DictWriter(f, fieldnames=['canonical_key', 'match_value', 'display_term', 'enriched_description', 'category', 'potential'])
     for d in decisions:
         action = (d.get('action') or '').upper()
         match_value = (d.get('suggested_cleanup_term') or '').strip()
-        if not match_value or match_value in existing_matches:
+        if not match_value or match_value in match_to_key:
+            # Already in mapping → skip dedup (already handled)
             continue
 
         if action == 'CREATE':
@@ -484,12 +491,18 @@ with MAPPING.open('a', newline='') as f:
                 'category': (d.get('category') or '').strip(),
                 'potential': (d.get('potential') or '').strip(),
             })
-            existing_matches.add(match_value)
+            match_to_key[match_value] = canonical_key
             added += 1
 
         elif action == 'MERGE':
             target_key = (d.get('target_canonical_key') or '').strip()
             if not target_key or target_key not in existing_keys:
+                continue
+            # Conflict check: does this match_value already belong to another key?
+            existing_for_mv = match_to_key.get(match_value)
+            if existing_for_mv and existing_for_mv != target_key:
+                print(f'CONFLICT: \"{match_value}\" → MERGE to \"{target_key}\" but already mapped to \"{existing_for_mv}\". SKIPPED.')
+                conflicts += 1
                 continue
             ek = existing_keys[target_key]
             w.writerow({
@@ -500,7 +513,7 @@ with MAPPING.open('a', newline='') as f:
                 'category': ek.get('category', ''),
                 'potential': ek.get('potential', ''),
             })
-            existing_matches.add(match_value)
+            match_to_key[match_value] = target_key
             added += 1
 
         # DISCARD: intentionally do nothing
@@ -514,9 +527,18 @@ if content and not content.endswith('\n'):
 created = sum(1 for d in decisions if (d.get('action') or '').upper() == 'CREATE')
 merged = sum(1 for d in decisions if (d.get('action') or '').upper() == 'MERGE')
 discarded = sum(1 for d in decisions if (d.get('action') or '').upper() == 'DISCARD')
-print(f'Merge complete: {created} CREATE, {merged} MERGE, {discarded} DISCARD → {added} rows appended')
+print(f'Merge complete: {created} CREATE, {merged} MERGE, {discarded} DISCARD → {added} rows appended, {conflicts} conflicts skipped')
 "
 ```
+
+**After merge with conflicts:** review the conflict lines printed to stderr.
+For each conflict, decide whether to:
+- Remove the older mapping row (if the newer MERGE target is more correct)
+- Keep the older mapping and reject the MERGE (if the older assignment is correct)
+- CREATE a new key instead (if neither mapping is right — the term is a distinct concept)
+
+This prevents silent data corruption where a generic term like "咖啡" gets
+locked to "coffee-shop" instead of the more appropriate "coffee" canonical key.
 
 ### 4. Re-normalize
 

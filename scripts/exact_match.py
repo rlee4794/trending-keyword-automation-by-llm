@@ -57,6 +57,16 @@ def _load_mapping(mapping_path: Path) -> tuple[dict[str, str], dict[str, str], d
             dt = (row.get("display_term") or "").strip()
             desc = (row.get("enriched_description") or "").strip()
             if mv and ck:
+                # Detect conflicts: same match_value, different canonical_key
+                if mv in match_to_key and match_to_key[mv] != ck:
+                    existing_ck = match_to_key[mv]
+                    print(
+                        f"  WARNING: match_value '{mv}' mapped to both "
+                        f"'{existing_ck}' (earlier) and '{ck}' (later). "
+                        f"First-match-wins → '{existing_ck}'.",
+                        file=sys.stderr,
+                    )
+                    continue  # first-match-wins
                 match_to_key[mv] = ck
                 if ck not in key_to_display:
                     key_to_display[ck] = dt or ck

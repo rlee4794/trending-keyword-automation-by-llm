@@ -24,3 +24,5 @@ runs/
 
 .DS_Store
 Thumbs.db
+_step2b_filter.py
+_step4_batch_review.py

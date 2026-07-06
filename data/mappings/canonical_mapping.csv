@@ -368,7 +368,6 @@ bing-sutt,chachanteng,冰室,"Traditional HK-style ice room (冰室) serving aff
 crispy-pork-belly,crispyporkbelly,脆皮燒肉,"Cantonese roast pork with crackling skin (脆皮燒肉), a siu mei staple and one of HK's most beloved meat dishes, eaten with mustard or sugar",fnb,high
 siu-mei,RoastedDuck,燒味,"Cantonese roasted meats (燒味) including char siu, roast duck, and crispy pork belly, a cornerstone of HK everyday dining",fnb,high
 bar-restaurant,rooftopbar,酒吧餐廳,"Hybrid bar and restaurant concept serving food alongside alcoholic beverages, common HK nightlife format",fnb,low
-uni-pasta,海膽,海膽意粉,"Pasta dish featuring sea urchin (uni) as the star ingredient, a luxury fusion dish popular in HK Japanese-Italian restaurants",fnb,high
 uni-pasta,uni,海膽意粉,"Pasta dish featuring sea urchin (uni) as the star ingredient, a luxury fusion dish popular in HK Japanese-Italian restaurants",fnb,high
 night-market,nightmarket,夜市,"Night market dining (夜市) featuring street food stalls and open-air eating, from Temple Street in HK to Taipei-style markets recreated in HK food events",fnb,low
 hk-souvenirs,souvenir,香港手信,"Edible Hong Kong souvenirs and gifts (手信) including cookies, egg rolls, wife cakes, and preserved fruits",fnb,low
@@ -788,3 +787,385 @@ wagyu,日本A4和牛,和牛,,fnb,high
 wagyu,澳洲和牛,和牛,,fnb,high
 sea-urchin,uni,海膽,,fnb,high
 sea-urchin,海膽,海膽,,fnb,high
+hot-dog-eating-contest,hot dog eating contest,Hot Dog Eating Contest,"Competitive eating event centered on hot dogs, a trending July 4th food topic",fnb,low
+chick-fil-a,chick fil a,Chick-fil-A,"American fast food chain known for chicken sandwiches, trending in HK search interest",poi,medium
+lo-mein,牛油拌面,撈麵,"Tossed noodles (撈麵) served with soy-based sauce and toppings, a versatile HK noodle dish from street stalls to restaurants",fnb,high
+soft-shell-crab-salad,軟殼蟹沙律,軟殼蟹沙律,"Japanese-style salad with crispy fried soft-shell crab, popular HK izakaya and Japanese restaurant appetizer",fnb,high
+tsukune,月見雞肉棒,月見雞肉棒,"Japanese chicken meatball skewer (tsukune) served with raw egg yolk for dipping, a popular HK yakitori dish",fnb,high
+beef-tongue,牛舌串,牛舌,"Grilled or braised beef tongue, a delicacy in Japanese yakiniku and Western cuisine, popular in HK izakayas and steakhouses",fnb,high
+bluefin-tuna,拖羅壽司盛合,藍鰭吞拿魚,"Premium fatty bluefin tuna (藍鰭吞拿魚) served as sashimi and sushi, the most prized fish in HK Japanese fine dining and omakase restaurants",fnb,high
+teppanyaki,什錦天婦羅盛合,鐵板燒,"Japanese cooking style where chefs prepare food on an iron griddle at the table, popular HK dining experience",fnb,high
+kani-miso-kora-yaki,蟹味噌甲羅燒,蟹味噌甲羅燒,"Japanese grilled crab meat and miso served in the crab shell, a popular HK izakaya delicacy",fnb,high
+seafood,活鮑魚,海鮮,"Broad seafood category central to HK cuisine, from live seafood restaurants in Sai Kung to street-level fish ball stalls",fnb,high
+beef-udon,牛肉烏冬,牛肉烏冬,"Japanese thick wheat noodles (udon) served with beef in hot broth, a popular HK Japanese restaurant dish",fnb,high
+isoyaki-seafood,磯燒海鮮,磯燒海鮮,"Japanese-style beachside grilled seafood (磯燒), a popular HK izakaya dining experience with dramatic flame-grilling presentation",fnb,high
+nanei-suisan,南瀛水產,南瀛水產,Popular HK Japanese izakaya and seafood restaurant chain in Tsim Sha Tsui known for isoyaki-style grilled seafood,poi,medium
+chicken-paitan-ramen,雞湯拉麵,雞白湯拉麵,"Creamy chicken-based ramen broth (鶏白湯) style ramen, a popular HK ramen trend alongside traditional tonkotsu",fnb,high
+crab-salt-ramen,蛤蜊鹽湯拉麵,蟹塩拉麵,"Ramen flavored with crab and sea salt (蟹塩拉麵), a lighter seafood-based ramen style emerging in HK's competitive ramen scene",fnb,high
+chicken-skin-dumplings,雞皮餃子,雞皮餃子,"Dumplings wrapped in crispy chicken skin instead of dough, a trending HK izakaya and ramen shop side dish",fnb,high
+black-tea-creme-caramel,紅茶焦糖布丁,紅茶焦糖布丁,"Japanese-style creme caramel pudding infused with black tea flavor, a popular HK Japanese restaurant dessert",fnb,high
+baka-ramen,BakaRamen,Baka Ramen,Trending HK ramen shop in Kennedy Town known for chicken-based ramen and creative small plates,poi,medium
+sirloin-pineapple-bun-burger,西冷牛扒菠蘿包漢堡,西冷牛扒菠蘿包漢堡,"HK fusion burger using pineapple bun (菠蘿包) as the bun with sirloin steak patty, a viral HK food trend blending cha chaan teng and burger culture",fnb,high
+pasta,卡邦尼意粉,意粉,"Italian-style noodles in various shapes and sauces, one of the most common Western food categories in HK from casual to fine dining",fnb,high
+creme-brulee,法式燉蛋,法式燉蛋,"Classic French dessert of custard with caramelized sugar top (Crème Brûlée), widely served in HK Western restaurants and cafes",fnb,high
+french-fries,薯條,薯條,"Deep-fried potato strips (French fries), a ubiquitous side dish in HK Western restaurants, fast food, and cha chaan teng",fnb,low
+beans-cafe,荳子,Beans Cafe,"Popular HK cafe chain known for coffee, desserts, and casual all-day dining in a cozy setting",poi,medium
+hotpot,內蒙古火鍋,火鍋,"Hot pot dining format where diners cook raw ingredients in simmering broth at the table, a HK staple",fnb,high
+hk-steak,滑牛,香港牛扒,"HK-style sizzling plate steak (鐵板牛扒) served with black pepper or mushroom sauce at cha chaan teng and budget Western restaurants, a nostalgic comfort food",fnb,high
+duck-blood,鴨血,鴨血,"Duck blood curd (鴨血), a popular hotpot and spicy soup ingredient in HK Sichuan and Taiwanese restaurants with silky smooth texture",fnb,high
+lamb-rolls,羊肉卷,羊肉卷,"Thinly sliced lamb rolls for hotpot (羊肉卷), a staple ingredient in HK hotpot restaurants especially in winter",fnb,high
+yam-noodles,淮山麵,淮山麵,"Noodles made with Chinese yam (淮山), a health-conscious noodle option in HK hotpot and noodle restaurants",fnb,high
+chiuchow-beef-ball,牛丸,潮州牛肉丸,"Chaozhou-style bouncy beef balls (潮州牛肉丸) with distinctive springy texture, a HK noodle soup and hotpot staple",fnb,high
+uni-fishball,海膽丸,海膽丸,"Fish balls stuffed with sea urchin paste, a premium hotpot and noodle topping in HK",fnb,high
+happy-lamb-hotpot,快樂小羊,快樂小羊,"International Mongolian-style hotpot chain (Happy Lamb / 快樂小羊) with multiple HK locations, known for lamb-focused broths",poi,medium
+hotpot,不蘸料火鍋,火鍋,"Hot pot dining format where diners cook raw ingredients in simmering broth at the table, a HK staple",fnb,high
+miso-soup,麵豉湯,麵豉湯,"Traditional Japanese miso soup with tofu and seaweed, a staple side dish in HK Japanese restaurants",fnb,low
+caesar-salad,凱撒沙律,凱撒沙律,"Classic Caesar salad with romaine, croutons, parmesan and anchovy dressing, widely served in HK Western restaurants",fnb,low
+sashimi,刺身盛,刺身,"Fresh raw fish sliced and served without rice, a staple of Japanese dining and HK sushi restaurants",fnb,high
+sushi-platter,壽司拼盤,壽司拼盤,"Assorted sushi platter, a common menu item in HK Japanese restaurants ranging from casual to high-end",fnb,low
+mango-salmon-roll,芒果三文魚卷,芒果三文魚卷,"Fusion sushi roll with fresh mango and salmon, a popular HK Japanese restaurant item blending tropical fruit with classic sushi",fnb,high
+atsuyaki-tamago,厚燒玉子,厚燒玉子,"Thick Japanese rolled omelette (厚燒玉子), a classic sushi and izakaya item in HK Japanese restaurants",fnb,high
+fried-squid-tentacles,炸魷魚鬚,炸魷魚鬚,"Deep-fried squid tentacles (炸魷魚鬚), a popular HK izakaya and street food snack with crispy batter and chewy texture",fnb,high
+garlic-salmon-scallop-fried-rice,蒜香三文魚帶子炒飯,蒜香三文魚帶子炒飯,"HK-style fried rice with garlic, salmon and scallops, a popular fusion dish in HK Japanese-Western restaurants",fnb,high
+uni-foie-gras-tower,海膽鵝肝塔,海膽鵝肝塔,"Luxury tower appetizer stacking sea urchin and foie gras on crispy base, a trending HK fine dining and Japanese restaurant dish",fnb,high
+leng-mian,涼麵,冷麵,"Cold noodles, a refreshing Chinese/Korean noodle dish served chilled with various sauces",fnb,high
+jollibee,快樂蜂,Jollibee,"Filipino fast food chain (Jollibee/快樂蜂) known for fried chicken and spaghetti, with growing HK presence",poi,medium
+hk-mcdonalds,麥當勞,香港麥當勞,"McDonald's fast food chain in Hong Kong, known for localized menu items like Shake Shake Fries",poi,medium
+omakase,香港omakase,Omakase,"Japanese chef's choice tasting menu dining format, popular in HK high-end sushi restaurants",fnb,high
+wagyu-burger,和牛芝士漢堡,和牛漢堡,"Premium burger made with Japanese wagyu beef patties, a popular gourmet burger offering in HK's upscale casual dining scene",fnb,low
+gung-gung-cafe,貢貢,貢貢,"Trendy Sai Kung waterfront cafe known for wagyu burgers and coffee, a popular HK weekend destination",poi,medium
+mochi,海鹽奶蓋沾醬麻糬,麻糬,"Japanese glutinous rice cake with sweet fillings, a popular dessert and snack trend in HK",fnb,high
+japanese-shaved-ice,百香果檸檬冰,日式刨冰,"Japanese-style kakigōri shaved ice desserts with flavored syrups and toppings, a popular HK summer dessert trend",fnb,low
+japanese-shaved-ice,刨冰,日式刨冰,"Japanese-style kakigōri shaved ice desserts with flavored syrups and toppings, a popular HK summer dessert trend",fnb,low
+aiyu-jelly,愛玉,愛玉,"Taiwanese fig seed jelly (愛玉) served in sweet drinks and desserts, a popular topping in HK bubble tea and dessert shops",fnb,high
+kanten-jelly,寒天,寒天,"Japanese agar jelly (寒天) used as a low-calorie topping in HK bubble tea, desserts and health drinks",fnb,high
+yogurt-drink,乳酪飲,乳酪飲,"Drinkable yogurt beverages (乳酪飲), a popular HK health drink category including Yakult-style and Korean-style yogurt drinks",fnb,low
+frozen-yogurt,酸奶,Froyo,"Soft-serve frozen yogurt (Froyo) with customizable toppings, a recurring HK dessert trend with dedicated froyo chains and cafe offerings",fnb,low
+fresh-milk,鮮牛奶,鮮牛奶,"Fresh pasteurized milk, a staple HK beverage and ingredient with strong local dairy brand presence",fnb,low
+frozen-yogurt,柑橘乳酪,Froyo,"Soft-serve frozen yogurt (Froyo) with customizable toppings, a recurring HK dessert trend with dedicated froyo chains and cafe offerings",fnb,low
+hokkaido-scallop,北海道珍寶帶子,北海道珍寶帶子,"Premium jumbo scallops from Hokkaido, a luxury seafood ingredient in HK Japanese and fine dining restaurants",fnb,high
+roast-pigeon,法式乳鴿,乳鴿,"Cantonese roasted whole young pigeon (乳鴿) with crispy skin and tender meat, a signature HK restaurant dish especially in Shatin and New Territories",fnb,high
+uni-prawn-toast,海膽蝦多士,海膽蝦多士,"HK fusion canapé of prawn toast topped with sea urchin, a trending luxury appetizer in HK fine dining and cocktail bars",fnb,high
+chu-hou-wagyu-wellington,柱侯和牛威靈頓,柱侯和牛威靈頓,"HK fusion dish combining Cantonese chu hou sauce with wagyu beef wellington, a creative fine dining crossover",fnb,high
+milk-tea-crepe-souffle,茶走可麗餅疏乎厘,茶走可麗餅疏乎厘,HK dessert fusion combining milk tea (茶走) with French crepe and soufflé pancake,fnb,high
+black-white-parfait,黑白芭菲,黑白芭菲,"Japanese-style black and white parfait dessert with sesame cream, tofu ice cream and wafer, a trendy HK Japanese dessert",fnb,high
+black-sesame-brownie,黑芝麻忌廉布朗尼,黑芝麻忌廉布朗尼,"Brownie infused with black sesame and cream, a popular HK bakery and cafe fusion dessert",fnb,high
+soy-milk-grass-jelly,豆漿涼粉,豆漿涼粉,"HK-style dessert of grass jelly served in sweet soy milk, a refreshing summer dessert",fnb,high
+french-food,香港法國菜,法國菜,"French cuisine, from casual bistro fare to haute cuisine, well-represented in HK's dining scene",fnb,low
+solo-dining,一人火鍋,一人食,"Dining alone concept (一人食) with individual portions and counter seating, a growing HK trend driven by urban lifestyles and solo diner-friendly restaurant designs",fnb,low
+hotpot,日式火鍋,火鍋,"Hot pot dining format where diners cook raw ingredients in simmering broth at the table, a HK staple",fnb,high
+hotpot,火鍋定食,火鍋,"Hot pot dining format where diners cook raw ingredients in simmering broth at the table, a HK staple",fnb,high
+hand-shaken-drinks,手搖茶,手搖飲品,"Hand-shaken beverage category (手搖飲品) including bubble tea, fruit teas, and specialty drinks, dominated by Taiwanese-inspired chains in HK",fnb,low
+sad-sour-spicy-noodles,傷心酸辣粉,傷心酸辣粉,"Popular HK chain restaurant specializing in Sichuan-style spicy and sour glass noodles (酸辣粉), a HK spicy food institution",poi,medium
+cake,巴斯克芝士蛋糕,蛋糕,Broad cake category in HK from traditional Chinese sponge cakes to premium Western-style celebration cakes from artisanal bakeries,fnb,high
+truffle-acorn-pasta,黑松露橡果麵,黑松露橡果麵,"Premium pasta dish with black truffle and acorn-fed pork, a trending HK Italian restaurant dish",fnb,high
+ginseng-sorbet,人參雪葩,人參雪葩,"Korean-influenced ginseng-flavored sorbet, a creative palate cleanser in HK fine dining",fnb,high
+hk-fine-dining,finediningexperience,香港高級餐廳,"Upscale dining experiences in HK featuring tasting menus, premium ingredients, and refined service",fnb,low
+iberico-char-siu,黑毛豬叉燒,黑毛豬叉燒,"Premium char siu made with Spanish Iberico pork, a trending elevated version of HK's iconic roast meat",fnb,high
+stuffed-snow-crab-claw,百花釀松葉蟹鉗,百花釀松葉蟹鉗,"Cantonese banquet dish of snow crab claw stuffed with shrimp paste and deep-fried, a classic HK Chinese restaurant delicacy",fnb,high
+coq-au-vin,法式燉雞,法式燉雞,"Classic French braised chicken in red wine (Coq au Vin), served in HK French bistros and fine dining",fnb,high
+spicy-white-wine-clams,香辣白酒蛤蜊,香辣白酒蛤蜊,"Clams steamed in spicy white wine sauce, a popular HK Western and fusion restaurant appetizer",fnb,high
+foie-gras-toast,肝醬多士,鴨肝多士,"Luxury appetizer of pan-seared foie gras on toasted bread, common in HK French and fusion fine dining restaurants",fnb,high
+cream-risotto,奶油燉飯,奶油燉飯,"Creamy Italian-style risotto, a popular main dish in HK Western and Italian restaurants",fnb,high
+babette-hk,Babette,Babette,Intimate French bistro in HK known for classic French dishes and cozy atmosphere,poi,medium
+french-food,法式料理,法國菜,"French cuisine, from casual bistro fare to haute cuisine, well-represented in HK's dining scene",fnb,low
+bar-restaurant,餐酒館,酒吧餐廳,"Hybrid bar and restaurant concept serving food alongside alcoholic beverages, common HK nightlife format",fnb,low
+seafood,蛤蜊,海鮮,"Broad seafood category central to HK cuisine, from live seafood restaurants in Sai Kung to street-level fish ball stalls",fnb,high
+foie-gras-toast,肝醬,鴨肝多士,"Luxury appetizer of pan-seared foie gras on toasted bread, common in HK French and fusion fine dining restaurants",fnb,high
+french-food,frenchcuisine,法國菜,"French cuisine, from casual bistro fare to haute cuisine, well-represented in HK's dining scene",fnb,low
+sushiro,壽司郎,壽司郎,"Major Japanese conveyor belt sushi chain (Sushiro/壽司郎) with extensive HK presence, one of the most popular sushi chains",poi,medium
+noodles,烏冬,麵食,"Broad category of noodle dishes spanning Chinese, Japanese, and Southeast Asian styles popular in HK",fnb,high
+shrimp-avocado-roll,炸蝦牛油果卷,炸蝦牛油果卷,"Sushi roll with crispy fried shrimp and avocado, a popular HK Japanese restaurant fusion roll",fnb,high
+salmon,三文魚刺身,三文魚,"Atlantic and Norwegian salmon (三文魚), the most popular raw fish in HK sushi restaurants and a common Western restaurant protein",fnb,high
+aka-ebi-sashimi,赤蝦刺身,赤蝦刺身,"Raw red shrimp sashimi (赤蝦), a premium Japanese seafood item in HK sushi and omakase restaurants",fnb,high
+afternoon-tea,日式下午茶,下午茶,"British-style afternoon tea service with finger sandwiches, scones, and pastries, popular HK hotel and cafe offering",fnb,low
+seafood-tostada,海鮮脆餅,海鮮脆餅,"Crispy seafood tostada with raw fish and mango salsa, a trending HK fusion restaurant appetizer",fnb,high
+hamachi-sashimi,油甘魚刺身,油甘魚刺身,"Raw yellowtail (hamachi/油甘魚) sashimi, a popular premium fish in HK Japanese restaurants",fnb,high
+mexican-food,taco,墨西哥菜,"Mexican cuisine including tacos, burritos, and quesadillas, a growing food trend in HK's dining scene",fnb,low
+cocktails,cocktail,Cocktail,"Mixed alcoholic drinks, a thriving scene in HK's bar and restaurant culture from speakeasies to rooftop bars",fnb,low
+house-of-culture-hk,houseofculturehk,House of Culture,Trendy HK fusion restaurant and cocktail bar in Sai Ying Pun known for multi-course chaos menu,poi,medium
+shanghainese-cuisine,Shanghainese,上海菜,"Shanghai-region cuisine featuring xiaolongbao, braised pork belly, and pan-fried buns, well-established in HK",fnb,low
+milk-tea-condensed-milk,茶走,茶走,"HK-style milk tea made with condensed milk instead of evaporated milk (茶走), a cha chaan teng classic variation",fnb,high
+white-peach-oolong,白桃烏龍,白桃烏龍,"White peach flavored oolong tea, a popular HK bubble tea and specialty tea shop drink",fnb,high
+durian,榴槤芝士蛋糕,榴槤,"Pungent tropical fruit beloved across Southeast Asia, a polarizing but hugely popular dessert ingredient in HK from durian mochi to ice cream",fnb,high
+cake,芝士蛋糕,蛋糕,Broad cake category in HK from traditional Chinese sponge cakes to premium Western-style celebration cakes from artisanal bakeries,fnb,high
+german-pork-knuckle,德國鹹豬手,德國鹹豬手,"German-style roasted pork knuckle with crispy skin (Schweinshaxe), a popular dish in HK German restaurants and beer halls",fnb,high
+squid-ink-seafood-pasta,墨汁海鮮意大利麵,墨汁海鮮意大利麵,"Italian pasta with squid ink and mixed seafood, a popular dish in HK Italian and fusion restaurants",fnb,high
+lobster-sauce-seafood-pasta,龍蝦汁海鮮意粉,龍蝦汁海鮮意粉,"Pasta in rich lobster bisque-style sauce with seafood, a premium HK Western restaurant dish",fnb,high
+beer,啤酒,啤酒,"Beer, a ubiquitous beverage in HK from local craft breweries to international brands and pub culture",fnb,low
+golden-fortress-restaurant,金壘餐廳,金壘餐廳,Long-established HK restaurant in Yuen Long Pat Heung known for German pork knuckle and pet-friendly outdoor dining,poi,medium
+pasta,卡邦尼煙肉雜菌意粉,意粉,"Italian-style noodles in various shapes and sauces, one of the most common Western food categories in HK from casual to fine dining",fnb,high
+pasta,煙三文魚忌廉蕃茄醬扁意粉,意粉,"Italian-style noodles in various shapes and sauces, one of the most common Western food categories in HK from casual to fine dining",fnb,high
+honey-chicken-wings,蜜糖雞翼,蜜糖雞翼,"Honey-glazed chicken wings, a popular HK cafe and cha chaan teng side dish and snack",fnb,high
+torched-pistachio-mochi,開心果麻糬提拉米蘇,炙燒開心果麻糬,"Blowtorch-caramelized mochi with pistachio flavor (炙燒開心果麻糬), a trending HK dessert innovation combining Japanese and Middle Eastern flavors",fnb,high
+sweet-sour-pork,水蜜桃咕嚕肉,咕嚕肉,"Cantonese classic of deep-fried pork in tangy sweet and sour sauce (咕嚕肉), one of the most iconic HK Chinese dishes",fnb,high
+drunken-pork-knuckle,花雕醉豬手,花雕醉豬手,"Chinese cold appetizer of pork knuckle marinated in huadiao wine, a classic HK banquet and restaurant dish",fnb,high
+seafood,白灼海蝦,海鮮,"Broad seafood category central to HK cuisine, from live seafood restaurants in Sai Kung to street-level fish ball stalls",fnb,high
+roast-pigeon,紅燒BB鴿,乳鴿,"Cantonese roasted whole young pigeon (乳鴿) with crispy skin and tender meat, a signature HK restaurant dish especially in Shatin and New Territories",fnb,high
+sweet-sour-pork,菠蘿咕嚕肉,咕嚕肉,"Cantonese classic of deep-fried pork in tangy sweet and sour sauce (咕嚕肉), one of the most iconic HK Chinese dishes",fnb,high
+avocado-crab-salad,牛油果蟹肉沙律,牛油果蟹肉沙律,"Salad with avocado and crab meat, a popular HK Western and hotel restaurant starter",fnb,high
+american-grill,燒澳洲肉眼扒,American Grill,"American-style grilled food concept featuring steaks, burgers, and barbecue, popular in HK's Western dining scene",fnb,low
+cheese-baked-oysters,芝士焗生蠔,芝士焗生蠔,"Oysters baked with cheese topping, a popular HK Western and buffet restaurant dish",fnb,high
+lobster-bisque,龍蝦濃湯,龍蝦濃湯,"Rich French-style lobster bisque soup, a classic starter in HK fine dining and hotel restaurants",fnb,high
+wagyu-tartare,和牛他他,和牛他他,"Raw minced wagyu beef tartare, a premium appetizer in HK fine dining and Japanese-fusion restaurants",fnb,high
+japanese-grilled-scallop,和風燒帶子,和風燒帶子,"Japanese-style grilled scallops, a popular HK izakaya and all-day breakfast cafe dish",fnb,high
+sauteed-mushrooms,炒雜菌,炒雜菌,"Sautéed mixed mushrooms, a common side dish in HK Western and fusion restaurants",fnb,low
+bacon,煙肉,煙肉,"Cured and smoked pork belly (bacon), a staple ingredient in HK Western breakfast, burgers and pasta dishes",fnb,low
+creamy-scrambled-eggs,牛乳炒蛋,牛乳炒蛋,"HK-style creamy scrambled eggs made with milk, a signature cha chaan teng and cafe breakfast item",fnb,high
+toast,吐司,吐司,"Toasted bread (toast), a staple HK breakfast and tea-time item from thick Hong Kong-style toast to Western-style",fnb,low
+specialty-coffee,炭燒咖啡,精品咖啡,"High-quality artisanal coffee culture, including pour-over, single-origin beans, and third-wave coffee shops",fnb,high
+wonton-noodles,雲吞湯麵,雲吞麵,"Quintessential HK noodle soup (雲吞麵) with shrimp wontons, springy egg noodles, and clear broth, a defining dish of Cantonese comfort food",fnb,high
+hk-curry,咖喱雞,香港咖喱,"HK-style curry blending Cantonese and Southeast Asian influences, found in cha chaan teng curry beef brisket and fish ball dishes",fnb,high
+beef-chuck-flap,牛板腱,牛板腱,"Beef chuck flap/top blade cut, a popular yakiniku and hotpot meat cut in HK Japanese BBQ restaurants",fnb,high
+beef-short-plate,牛五花,牛五花,"Beef short plate/brisket cut with rich marbling, a staple yakiniku meat in HK Japanese BBQ restaurants",fnb,high
+yakiniku-like,YAKINIKULIKE,燒肉LIKE,"Popular Japanese solo-dining yakiniku chain (燒肉LIKE) with multiple HK locations, known for individual grill tables",poi,medium
+slow-cook-wagyu,澳洲和牛肩三角,慢煮和牛,"Slow-cooked wagyu beef, a premium Japanese beef preparation method trending in HK fine dining",fnb,high
+iced-pear,水冷雪梨,水冷雪梨,"Korean-style chilled whole pear dessert/palate cleanser, served in HK Korean restaurants",fnb,high
+stuffed-fried-pepper,炸釀青椒,炸釀青椒,"Korean-style deep-fried stuffed green peppers with beef filling, a popular HK Korean restaurant appetizer",fnb,high
+spicy-mixed-sashimi,辣拌綜合魚生,辣拌綜合魚生,"Korean-style spicy mixed raw fish salad (hoe-deopbap style), a trending HK Korean-fusion dish",fnb,high
+korean-bbq,泡菜五花肉,韓燒,"Korean barbecue dining format where diners grill marinated meats at tabletop grills, hugely popular in HK",fnb,high
+korean-egg-battered-shrimp,韓式蛋包煎蝦,韓式蛋包煎蝦,"Korean-style pan-fried shrimp coated in egg batter, a popular HK Korean restaurant dish",fnb,high
+foie-gras-stone-pot-rice,鵝肝石頭鍋飯,鵝肝石頭鍋飯,"Korean stone pot rice (dolsot bibimbap) topped with pan-seared foie gras, a luxury HK Korean-fusion dish",fnb,high
+strawberry-makgeolli-slush,士多啤梨沙冰生米酒,士多啤梨沙冰生米酒,"Korean strawberry slush cocktail with makgeolli (raw rice wine), a trending HK Korean restaurant drink",fnb,high
+seafood,帶子,海鮮,"Broad seafood category central to HK cuisine, from live seafood restaurants in Sai Kung to street-level fish ball stalls",fnb,high
+goksu-korean,Goksu,Goksu 曲水,Korean restaurant (Goksu/曲水) in MegaBox Kowloon Bay with outdoor pet-friendly dining and extensive Korean menu,poi,medium
+noodles,木魚湯烏冬,麵食,"Broad category of noodle dishes spanning Chinese, Japanese, and Southeast Asian styles popular in HK",fnb,high
+herb-pumpkin,香草南瓜,香草南瓜,"Herb-roasted or seasoned pumpkin, a popular HK cafe and Western restaurant side dish",fnb,low
+japanese-stir-fried-vegetables,日式炒野菜,日式炒野菜,"Japanese-style stir-fried seasonal vegetables, a common side dish in HK Japanese restaurants and teishoku sets",fnb,low
+lemon-tea-yuzu-wings,檸檬茶柚子雞翼,檸檬茶柚子雞翼,"Chicken wings marinated in lemon tea and yuzu, a creative HK cafe fusion dish blending cha chaan teng flavors",fnb,high
+miso-halibut,味噌比目魚,味噌比目魚,"Halibut or flounder marinated in miso and grilled, a classic Japanese dish popular in HK izakayas and Japanese restaurants",fnb,high
+hand-shaken-drinks,白桃芒果冰茶,手搖飲品,"Hand-shaken beverage category (手搖飲品) including bubble tea, fruit teas, and specialty drinks, dominated by Taiwanese-inspired chains in HK",fnb,low
+hk-buffet,早午餐,放題,"All-you-can-eat buffet dining format (放題) hugely popular in HK, ranging from Japanese to hotpot to international spreads",fnb,low
+baked-chicken-leg,雞腿焗烤,焗烤雞腿,"Oven-baked or gratin chicken leg, a popular HK cafe and Western restaurant brunch item",fnb,high
+scones,司康,司康,"British-style baked scone, a staple item in HK afternoon tea sets and cafes, served with clotted cream and jam",fnb,high
+ice-cream,冰淇淋,雪糕,"Frozen dessert category spanning soft serve, gelato, and novelty ice cream, a year-round HK treat with many local and international brands",fnb,high
+blueberry-jam,藍莓醬,藍莓醬,"Blueberry jam or compote, a common condiment in HK cafes, bakeries and dessert shops",fnb,low
+strawberry-napoleon-cake,士多啤梨拿破崙蛋糕,士多啤梨拿破崙蛋糕,"HK-style strawberry mille-feuille (napoleon) cake with layers of puff pastry, custard and fresh strawberries, a popular celebration cake",fnb,high
+custard-sauce,吉士醬,吉士醬,"Pastry cream/custard sauce (吉士醬), a fundamental ingredient in HK bakery items, desserts and egg tarts",fnb,low
+puff-pastry,酥皮,酥皮,"Laminated puff pastry (酥皮), a key component of HK bakery items from egg tarts to BBQ pork pastries",fnb,low
+chateraise,Chateraise,Chateraise,"Popular Japanese cake and pastry chain (Chateraise) with extensive HK presence, known for affordable premium cakes and desserts",poi,medium
+mexican-food,手撕肉粟米片,墨西哥菜,"Mexican cuisine including tacos, burritos, and quesadillas, a growing food trend in HK's dining scene",fnb,low
+cheese,芝士拼盤,芝士,"Broad cheese category from processed cheese in HK-style dishes to artisanal cheeses in Western restaurants and gourmet shops, an increasingly important HK ingredient",fnb,high
+mexican-food,nachos,墨西哥菜,"Mexican cuisine including tacos, burritos, and quesadillas, a growing food trend in HK's dining scene",fnb,low
+cheese,Camembert,芝士,"Broad cheese category from processed cheese in HK-style dishes to artisanal cheeses in Western restaurants and gourmet shops, an increasingly important HK ingredient",fnb,high
+tofu-malabar-spinach-fish-soup,豆腐潺菜豬肉魚湯,豆腐潺菜豬肉魚湯,"HK home-style soup with tofu, Malabar spinach, pork and fish, a nourishing Cantonese family dish",fnb,high
+fish-sauce-okra-minced-pork,魚露肉碎炒秋葵,魚露肉碎炒秋葵,"Stir-fried okra with minced pork in fish sauce, a popular HK home-style and Thai-influenced dish",fnb,high
+pan-fried-fish-steak,煎魚扒,煎魚扒,"Pan-fried fish fillet/steak, a common HK home-cooking and Western restaurant main dish",fnb,low
+afternoon-tea,蜜瓜主題下午茶,下午茶,"British-style afternoon tea service with finger sandwiches, scones, and pastries, popular HK hotel and cafe offering",fnb,low
+birds-nest-crab-soba,燕窩蟹肉蕎麥冷麵,燕窩蟹肉蕎麥冷麵,"Luxury cold soba noodles with bird's nest and crab meat, a premium HK hotel afternoon tea dish",fnb,high
+afternoon-tea,high tea,下午茶,"British-style afternoon tea service with finger sandwiches, scones, and pastries, popular HK hotel and cafe offering",fnb,low
+afternoon-tea,香港下午茶,下午茶,"British-style afternoon tea service with finger sandwiches, scones, and pastries, popular HK hotel and cafe offering",fnb,low
+afternoon-tea,HotelAfternoonTea,下午茶,"British-style afternoon tea service with finger sandwiches, scones, and pastries, popular HK hotel and cafe offering",fnb,low
+afternoon-tea,下午茶自助餐,下午茶,"British-style afternoon tea service with finger sandwiches, scones, and pastries, popular HK hotel and cafe offering",fnb,low
+afternoon-tea,蜜瓜下午茶,下午茶,"British-style afternoon tea service with finger sandwiches, scones, and pastries, popular HK hotel and cafe offering",fnb,low
+vietnamese-food,越南粉,越南菜,"Vietnamese cuisine featuring pho, banh mi, and spring rolls, well-established in HK with numerous casual and mid-range restaurants",fnb,low
+mantis-shrimp-noodle-soup,瀨尿蝦湯粉,瀨尿蝦湯粉,"Vietnamese-style noodle soup with mantis shrimp (瀨尿蝦), a trending HK Vietnamese restaurant specialty",fnb,high
+vietnamese-coffee,越式咖啡,越式咖啡,"Vietnamese-style drip coffee with condensed milk (cà phê sữa đá), popular in HK Vietnamese restaurants",fnb,high
+vietnamese-food,越南生牛河,越南菜,"Vietnamese cuisine featuring pho, banh mi, and spring rolls, well-established in HK with numerous casual and mid-range restaurants",fnb,low
+vietnamese-food,pho,越南菜,"Vietnamese cuisine featuring pho, banh mi, and spring rolls, well-established in HK with numerous casual and mid-range restaurants",fnb,low
+banh-mi,法包,越南法包,"Vietnamese baguette sandwich filled with meats, pickled vegetables, and herbs, increasingly popular in HK",fnb,high
+vietnamese-food,越南美食,越南菜,"Vietnamese cuisine featuring pho, banh mi, and spring rolls, well-established in HK with numerous casual and mid-range restaurants",fnb,low
+hk-fried-chicken,脆香雞翼,香港炸雞,"Hong Kong fried chicken scene including Korean-style, Taiwanese-style, and local Cantonese fried chicken, a competitive F&B category",fnb,low
+hk-mcdonalds,蜜糖BBQ麥炸雞,香港麥當勞,"McDonald's fast food chain in Hong Kong, known for localized menu items like Shake Shake Fries",poi,medium
+apple-pie,蘋果批,蘋果批,"Apple pie, a popular dessert item in HK fast food restaurants and bakeries, notably McDonald's fried apple pie",fnb,low
+vietnamese-food,Viet,越南菜,"Vietnamese cuisine featuring pho, banh mi, and spring rolls, well-established in HK with numerous casual and mid-range restaurants",fnb,low
+frozen-yogurt,乳酪,Froyo,"Soft-serve frozen yogurt (Froyo) with customizable toppings, a recurring HK dessert trend with dedicated froyo chains and cafe offerings",fnb,low
+greek-yogurt,希臘乳酪,希臘乳酪,"Thick strained Greek yogurt, a popular health food and dessert base in HK cafes and supermarkets",fnb,high
+mango,芒果,芒果,"Mango fruit, a dominant dessert ingredient in HK from mango pomelo sago to mango mochi and drinks",fnb,low
+croffle,牛角包窩夫,牛角包窩夫,"Croissant-waffle hybrid (croffle), a viral HK cafe dessert trend where croissant dough is pressed in a waffle iron",fnb,high
+ice-cream,香港雪糕,雪糕,"Frozen dessert category spanning soft serve, gelato, and novelty ice cream, a year-round HK treat with many local and international brands",fnb,high
+dessert,香港甜品,甜品,"Broad dessert category covering HK-style sweets (糖水), Western pastries, and Asian confections",fnb,low
+thai-food,massaman curry,泰國菜,"Thai cuisine featuring bold flavors of sweet, sour, spicy, and savory, with strong presence in HK's九龙城 district",fnb,low
+thai-food,馬沙文咖喱,泰國菜,"Thai cuisine featuring bold flavors of sweet, sour, spicy, and savory, with strong presence in HK's九龙城 district",fnb,low
+thai-food,冬陰功,泰國菜,"Thai cuisine featuring bold flavors of sweet, sour, spicy, and savory, with strong presence in HK's九龙城 district",fnb,low
+thai-food,tom yum,泰國菜,"Thai cuisine featuring bold flavors of sweet, sour, spicy, and savory, with strong presence in HK's九龙城 district",fnb,low
+siu-mei,燒鵝,燒味,"Cantonese roasted meats (燒味) including char siu, roast duck, and crispy pork belly, a cornerstone of HK everyday dining",fnb,high
+fat-j-char-siu,發達叉燒,發達叉燒,Popular HK char siu specialty shop (Fat J / 發達叉燒) in Wan Chai known for premium roast pork with long queues,poi,medium
+oysters,酥炸生蠔,生蠔,"Fresh oysters served raw or cooked, a popular HK seafood item from buffet spreads to specialty oyster bars",fnb,high
+sakura-shrimp-hotpot,櫻花蝦濃湯鍋,櫻花蝦濃湯鍋,"Taiwanese-style hotpot with sakura shrimp-rich broth, a trending HK hotpot restaurant soup base",fnb,high
+seafood,海鮮盆,海鮮,"Broad seafood category central to HK cuisine, from live seafood restaurants in Sai Kung to street-level fish ball stalls",fnb,high
+hand-shaken-drinks,珍珠芋圓奶茶,手搖飲品,"Hand-shaken beverage category (手搖飲品) including bubble tea, fruit teas, and specialty drinks, dominated by Taiwanese-inspired chains in HK",fnb,low
+hand-shaken-drinks,沙冰,手搖飲品,"Hand-shaken beverage category (手搖飲品) including bubble tea, fruit teas, and specialty drinks, dominated by Taiwanese-inspired chains in HK",fnb,low
+hk-buffet,火鍋放題,放題,"All-you-can-eat buffet dining format (放題) hugely popular in HK, ranging from Japanese to hotpot to international spreads",fnb,low
+souffle-pancake,梳乎厘班戟,梳乎厘班戟,"Japanese-style fluffy soufflé pancakes, a massively popular HK cafe and dessert trend with dedicated specialty shops",fnb,high
+phi-coffee-pancake,phicoffeeandpancake,PHI Coffee & Pancake,"Popular HK cafe chain known for soufflé pancakes, coffee and all-day dining with multiple locations",poi,medium
+oysters,生蠔拼盤,生蠔,"Fresh oysters served raw or cooked, a popular HK seafood item from buffet spreads to specialty oyster bars",fnb,high
+salt-grilled-eel,鹽燒白鱔,鹽燒白鱔,"Japanese-style salt-grilled freshwater eel (unagi/shioyaki), a premium HK izakaya and Japanese restaurant dish",fnb,high
+beef-tongue,炭燒和牛牛脷,牛舌,"Grilled or braised beef tongue, a delicacy in Japanese yakiniku and Western cuisine, popular in HK izakayas and steakhouses",fnb,high
+saboten,saboten,Saboten,Japanese tonkatsu (pork cutlet) restaurant chain (Saboten/勝博殿) with HK locations,poi,medium
+american-grill,bbqsteak,American Grill,"American-style grilled food concept featuring steaks, burgers, and barbecue, popular in HK's Western dining scene",fnb,low
+pasta,truffle salsiccia,意粉,"Italian-style noodles in various shapes and sauces, one of the most common Western food categories in HK from casual to fine dining",fnb,high
+pasta,松露香腸,意粉,"Italian-style noodles in various shapes and sauces, one of the most common Western food categories in HK from casual to fine dining",fnb,high
+french-food,法式血鴨,法國菜,"French cuisine, from casual bistro fare to haute cuisine, well-represented in HK's dining scene",fnb,low
+french-food,canard à la presse,法國菜,"French cuisine, from casual bistro fare to haute cuisine, well-represented in HK's dining scene",fnb,low
+roast-pigeon,烤鴨,乳鴿,"Cantonese roasted whole young pigeon (乳鴿) with crispy skin and tender meat, a signature HK restaurant dish especially in Shatin and New Territories",fnb,high
+indian-cuisine,indiafood,印度菜,"Indian cuisine ranging from North Indian curries to South Indian dosas, with a long-established HK presence",fnb,low
+hk-palmier,cookies,香港蝴蝶酥,"HK-style butterfly palmier pastry (蝴蝶酥), a caramelized puff pastry cookie that has become an iconic local souvenir",fnb,high
+granola,granola,Granola,"Toasted muesli/granola cereal, a popular HK cafe and health food breakfast item",fnb,low
+cookies-quartet,牛油曲奇,曲奇四重奏,"Popular HK bakery chain (曲奇四重奏) known for premium butterfly palmiers and butter cookies, a go-to souvenir brand",poi,medium
+bakehouse-hk,bakehouse,Bakehouse,"Iconic HK artisan bakery chain known for sourdough egg tarts, pastries and bread, with perpetual queues at multiple locations",poi,medium
+dim-sum,dim sum,點心,"Traditional Cantonese small plates served in bamboo steamers, the quintessential HK dining experience from breakfast to lunch",fnb,high
+dim-sum,菜苗餃,點心,"Traditional Cantonese small plates served in bamboo steamers, the quintessential HK dining experience from breakfast to lunch",fnb,high
+beef-tongue,beeftongue,牛舌,"Grilled or braised beef tongue, a delicacy in Japanese yakiniku and Western cuisine, popular in HK izakayas and steakhouses",fnb,high
+congee,粥,粥,"Chinese rice porridge (congee/粥), a staple HK comfort food from plain congee to preserved egg and pork congee",fnb,high
+trusty-congee-king,TrustyCongeeKing,Trusty Congee King,Popular HK congee specialty shop chain (靠得住粥麵) known for quality Cantonese congee and noodles,poi,medium
+fusion-cuisine,意大利亞洲融合菜,Fusion菜,"Culinary approach blending elements from different food traditions, a defining characteristic of contemporary HK dining",fnb,low
+mexican-food,octopus tacos,墨西哥菜,"Mexican cuisine including tacos, burritos, and quesadillas, a growing food trend in HK's dining scene",fnb,low
+mexican-food,章魚taco,墨西哥菜,"Mexican cuisine including tacos, burritos, and quesadillas, a growing food trend in HK's dining scene",fnb,low
+kimchi,泡菜,泡菜,"Korean fermented vegetables (kimchi), a ubiquitous side dish and ingredient in HK Korean restaurants and fusion cuisine",fnb,high
+broccolini,broccolini,Broccolini,"Tender-stem broccoli, a popular vegetable side dish in HK Western and fusion restaurants",fnb,low
+egg-pancake,台式蛋餅,蛋餅,"Taiwanese-style egg crepe (蛋餅) with various fillings, a popular breakfast and snack item trending in HK's Taiwanese food scene",fnb,high
+hak-bou-siu-hong,黑布小巷,黑布小巷,Trending HK Taiwanese-style eatery in Lai Chi Kok known for egg pancakes (蛋餅) and Taiwanese snacks,poi,medium
+wagyu-burger,和牛漢堡扒,和牛漢堡,"Premium burger made with Japanese wagyu beef patties, a popular gourmet burger offering in HK's upscale casual dining scene",fnb,low
+meat-rice-hamburg,肉肉大米,肉肉大米,"Japanese-style hamburg steak rice bowl chain (肉肉大米) popular in HK and mainland China, known for wagyu beef patty rice",poi,medium
+wagyu-burger,WagyuBeefPatty,和牛漢堡,"Premium burger made with Japanese wagyu beef patties, a popular gourmet burger offering in HK's upscale casual dining scene",fnb,low
+seafood,三文魚蝦沙律,海鮮,"Broad seafood category central to HK cuisine, from live seafood restaurants in Sai Kung to street-level fish ball stalls",fnb,high
+pizza,菠蘿pizza,Pizza,"Italian-style flatbread with toppings, widely available in HK from international chains to artisanal Neapolitan pizzerias",fnb,high
+theme-restaurant,Miffy主題餐廳,主題餐廳,"Themed dining venues (主題餐廳) in HK ranging from cartoon character cafes to immersive experience restaurants, popular for special occasions and social media",fnb,low
+oyster-omelette,蠔餅,蠔餅,"HK-style crispy oyster omelette/pancake (蠔餅), a popular street food and dai pai dong dish",fnb,high
+specialty-coffee,roastery,精品咖啡,"High-quality artisanal coffee culture, including pour-over, single-origin beans, and third-wave coffee shops",fnb,high
+specialty-coffee,coffeeart,精品咖啡,"High-quality artisanal coffee culture, including pour-over, single-origin beans, and third-wave coffee shops",fnb,high
+sandwich,三文治,三文治,"Sandwich, a staple HK cafe and cha chaan teng item from egg sandwiches to club sandwiches",fnb,low
+dai-gap-faan,大鴿飯,大鴿飯,"Popular Guangzhou-based roast pigeon specialty restaurant chain (大鴿飯), known to HK diners who visit the mainland",poi,medium
+yardbird-hk,yardbird,Yardbird,"Internationally renowned HK yakitori restaurant in Sheung Wan, famous for chicken skewers and awarded global recognition",poi,medium
+waffles-hk,原味雞蛋仔,窩夫,"Hong Kong-style waffles, including egg waffles (雞蛋仔) and griddled waffles (格仔餅)",fnb,high
+seaweed-rice-roll,紫菜飯卷,紫菜卷飯,"Korean-style seaweed rice rolls (kimbap/gimbap), popular HK street food and lunch item",fnb,high
+hk-fried-chicken,甜辣炸雞,香港炸雞,"Hong Kong fried chicken scene including Korean-style, Taiwanese-style, and local Cantonese fried chicken, a competitive F&B category",fnb,low
+hk-fried-chicken,韓式炸雞,香港炸雞,"Hong Kong fried chicken scene including Korean-style, Taiwanese-style, and local Cantonese fried chicken, a competitive F&B category",fnb,low
+bread,麵包,麵包,Bread and baked goods staple in HK bakeries and cha chaan teng,fnb,low
+fairwood,大快活,大快活,Major HK fast food chain Fairwood affordable local dishes,poi,medium
+iced-sweet-sour-pork,冰鎮咕嚕肉,冰鎮咕嚕肉,Iced sweet and sour pork creative Cantonese dish,fnb,high
+lap-mei-claypot-rice,臘味煲仔飯,臘味煲仔飯,Claypot rice with Chinese cured meats classic HK winter dish,fnb,high
+a5-wagyu,a5和牛,A5和牛,Premium Japanese A5 grade wagyu beef intense marbling,fnb,high
+teriyaki-salmon,照燒三文魚,照燒三文魚,Teriyaki-glazed salmon fillet Japanese-Western fusion,fnb,high
+kora-yaki,甲羅燒,甲羅燒,Japanese grilled crab shell with crab meat miso and egg,fnb,high
+salmon-roe,三文魚子,三文魚子,Salmon roe ikura sushi topping and garnish,fnb,high
+korean-bbq,韓式燒肉,韓式燒肉,Korean-style grilled meat BBQ hugely popular in HK,fnb,high
+beef-short-ribs,牛肋骨,牛肋骨,Beef short ribs galbi cut popular in Korean BBQ,fnb,high
+ser-wong-fun,蛇王芬,蛇王芬,Historic HK restaurant in Central snake soup since 1895,poi,medium
+snake-soup,蛇羹,蛇羹,Traditional Cantonese snake soup HK winter delicacy,fnb,high
+sakura-shrimp-meat-patty,櫻花蝦肉餅,櫻花蝦肉餅,Handmade meat patty with sakura shrimp and fried egg,fnb,high
+leung-hop-restaurant,兩合特色餐廳,兩合特色餐廳,HK restaurant in Tuen Mun sakura shrimp meat patty rice,poi,medium
+sakura-shrimp,櫻花蝦,櫻花蝦,Tiny dried sakura shrimp aromatic topping in HK dishes,fnb,high
+meat-patty,肉餅,肉餅,HK-style steamed or pan-fried meat patty classic home dish,fnb,high
+cold-cuts,cold cuts,Cold Cuts,Italian-style cold cuts and charcuterie board,fnb,medium
+ask-for-alonzo,askforalonzo,Ask For Alonzo,Italian restaurant chain in HK casual trattoria,poi,medium
+handmade-dim-sum,手工點心,手工點心,Handmade dim sum traditional craftsmanship for quality yum cha,fnb,high
+tai-wai-dining-room,大圍小館,大圍小館,Popular HK restaurant in Tai Wai nostalgic handmade dim sum,poi,medium
+black-cod,黑鱈魚,黑鱈魚,Black cod sablefish buttery texture miso-marinated,fnb,high
+sirloin-beef,sirloin,Sirloin,Premium beef sirloin cut popular steak choice in HK,fnb,medium
+the-grill-room,thegrillroomhk,The Grill Room,Western grill restaurant in TST steaks and date-night,poi,medium
+cod-milt,鱈魚白子,鱈魚白子,Cod milt shirako Japanese delicacy creamy custard texture,fnb,high
+hamachi,油甘魚,油甘魚,Yellowtail amberjack hamachi popular sashimi fish,fnb,high
+scallop,帆立貝,帆立貝,Japanese scallop hotate sweet and tender sushi staple,fnb,high
+fa-chen-yue-xi,花晨月夕,花晨月夕,Upscale Japanese restaurant in TST refined omakase,poi,medium
+beef-hotpot,牛肉火鍋,牛肉火鍋,Hotpot focused on premium beef Taiwanese-style all-you-can-eat,fnb,high
+ngau-ban,牛品,牛品,Taiwanese-style beef hotpot buffet chain in HK,poi,medium
+fried-dinosaur-egg,炸恐龍蛋,炸恐龍蛋,Deep-fried shrimp paste ball with century egg Thai-HK fusion,fnb,high
+green-curry,青咖喱,青咖喱,Thai green curry with coconut milk served with chicken roti,fnb,high
+thai-raw-shrimp,泰式生蝦,泰式生蝦,Thai-style raw shrimp with spicy garlic-lime dressing,fnb,high
+grilled-pork-neck,燒豬頸肉,燒豬頸肉,Thai-style grilled pork neck kor mu yang tender flavorful,fnb,high
+stir-fried-morning-glory,飛天通菜,飛天通菜,Thai stir-fried water spinach with garlic and chili,fnb,high
+rose-gold-tofu,玫瑰金磚,玫瑰金磚,Crispy golden fried tofu brick trending HK street food,fnb,high
+ginger-scallion-fish-head-claypot,薑蔥魚雲煲,薑蔥魚雲煲,Cantonese claypot fish head ginger scallion dai pai dong classic,fnb,high
+garlic-steamed-prawns,蒜蓉蒸海蝦,蒜蓉蒸海蝦,Steamed whole prawns minced garlic scallions Cantonese seafood,fnb,high
+vegetarian-food,素食,素食,Vegetarian cuisine growing food category in HK,fnb,low
+vegan-food,vegan,Vegan,Plant-based vegan cuisine emerging food trend in HK,fnb,low
+stinky-tofu,臭豆腐,臭豆腐,Fermented tofu deep-fried with chili sauce iconic HK street food,fnb,high
+souffle-egg-cup,梳乎里厚蛋燒,梳乎里厚蛋燒,Souffle-style thick egg cup fluffy baked egg dessert,fnb,high
+mongkok-cafe,旺角冰室,旺角冰室,Mongkok Cafe popular HK cha chaan teng chain since 2017,poi,medium
+hk-cha-chaan-teng,香港茶餐廳,茶餐廳,HK-style cha chaan teng quintessential local diner,fnb,high
+hk-dessert,港式甜品,港式甜品,HK-style desserts mango pomelo sago sweet soups egg waffles,fnb,high
+fish-ball-noodles,魚蛋粉,魚蛋粉,HK-style fish ball rice noodles in clear broth noodle staple,fnb,high
+fried-fish-skin,炸魚皮,炸魚皮,Deep-fried fish skin crispy HK snack,fnb,high
+put-chai-ko,缽仔糕,缽仔糕,Traditional HK steamed rice pudding with red beans,fnb,high
+fish-ball,魚蛋,魚蛋,HK-style fish balls pounded fish paste ubiquitous street food,fnb,high
+sam-choi-fish-ball-noodles,三才魚蛋粉麵,三才魚蛋粉麵,Long-established HK noodle shop Causeway Bay house-made fish balls,poi,medium
+double-boiled-soup,燉品,燉品,Chinese double-boiled nourishing soups slow-cooked ceramic pots,fnb,high
+mikan-dai-sashimi,蜜柑鯛刺身,蜜柑鯛刺身,Mikan-fed sea bream sashimi from Ehime Japan citrus aroma,fnb,high
+octopus,八爪魚,八爪魚,Octopus common ingredient from takoyaki to sashimi,fnb,medium
+mozuku-seaweed,水雲藻,水雲藻,Okinawan mozuku seaweed vinegared appetizer,fnb,high
+ming-kei-chiu-chow,明記潮館,明記潮館,Popular Chiu Chow daa laang restaurant Mongkok high-CP late-night,poi,medium
+earl-grey-ice-cream,伯爵茶雪糕,伯爵茶雪糕,Earl grey tea flavored ice cream tea-infused dessert,fnb,medium
+strawberry-condensed-milk-ice-cream,草莓煉奶雪糕,草莓煉奶雪糕,Strawberry ice cream with condensed milk HK dessert flavor,fnb,medium
+french-oysters,法國生蠔,法國生蠔,Fresh French oysters premium imported seafood HK fine dining,fnb,high
+tin-chi-vegetarian,天賜素齋,天賜素齋,HK vegetarian restaurant chain classic Chinese Buddhist cuisine,poi,medium
+xiao-long-bao,小籠包,小籠包,Shanghai-style soup dumplings pork hot broth hugely popular,fnb,high
+jiu-niang-tang-yuan,酒釀小丸子,酒釀小丸子,Fermented rice wine dessert glutinous rice balls Shanghainese,fnb,high
+salted-pork-napa-cabbage,咸肉津白,咸肉津白,Shanghainese napa cabbage braised with salted pork milky broth,fnb,high
+spicy-mixed-sashimi,辣拌魚生,辣拌魚生,Korean-style spicy mixed raw fish salad trending in HK,fnb,high
+korean-izakaya,韓式居酒屋,韓式居酒屋,Korean-style izakaya pub anju dishes with drinking culture,fnb,high
+black-thorn-durian,黑刺榴槤,黑刺榴槤,Premium Black Thorn durian from Malaysia creamy bittersweet,fnb,high
+napoleon-cake,拿破崙蛋糕,拿破崙蛋糕,Layered puff pastry Napoleon mille-feuille cake HK bakery,fnb,high
+chocolate-pistachio,朱古力開心果,朱古力開心果,Chocolate and pistachio flavor combination trending in HK pastries,fnb,medium
+ramen,豚肉拉麵,拉麵,"Japanese wheat noodle soup dish, one of HK's most popular dining categories with dedicated ramen shops across every district",fnb,high
+ramen,豚骨拉麵,拉麵,"Japanese wheat noodle soup dish, one of HK's most popular dining categories with dedicated ramen shops across every district",fnb,high
+fried-chicken,炸雞,炸雞,Fried chicken Korean Japanese karaage and Western styles,fnb,medium
+bari-uma-ramen,霸嗎拉麵,霸嗎拉麵,Bari-Uma Ramen popular HK chain from Hiroshima rich tonkotsu,poi,medium
+lava-custard-napoleon-tart,流心布甸拿破崙撻,流心布甸拿破崙撻,XXL lava custard napoleon tart viral HK bakery CASABAKE,fnb,high
+dubai-chocolate,開心果醬,杜拜朱古力,"Dubai-style premium chocolate with pistachio and kataifi filling (杜拜朱古力), a viral social media food trend that exploded in HK",fnb,high
+isobe-yaki,磯燒,磯燒,Japanese isobe-yaki seafood grill interactive tabletop dining,fnb,high
+sundubu-jjigae,韓式豆腐鍋,韓式豆腐鍋,Korean soft tofu stew sundubu jjigae spicy comforting,fnb,high
+kkongchi-bibimbap,泥蚶拌飯,泥蚶拌飯,Korean cockle bibimbap seasoned rice with fresh cockles,fnb,high
+cheese-foam-tea,芝士奶蓋,芝士奶蓋,Cheese foam tea popular HK bubble tea creamy salted cheese cap,fnb,high
+roasted-oolong-tea,焙烏龍,焙烏龍,Roasted oolong tea nutty aromatic tea base in HK bubble tea,fnb,high
+dejeng-tea,得正,得正,Taiwanese bubble tea chain Dejeng HK Causeway Bay cheese foam tea,poi,medium
+siu-mei,燒臘,燒臘,HK-style roast meats siu mei char siu roast duck crispy pork,fnb,high
+yau-kat-siu-mei,有吉燒臘,有吉燒臘,HK-style roast meat restaurant Taiwan Ximending char siu roast duck,poi,medium
+red-prawn-tartare,紅蝦他他,紅蝦他他,Red prawn tartare refined raw prawn with avocado appetizer,fnb,high
+cornbread,粟米包,粟米包,American-style cornbread trending HK brunch item with bacon,fnb,medium
+hotpot,任食邊爐,火鍋,"Hot pot dining format where diners cook raw ingredients in simmering broth at the table, a HK staple",fnb,high
+tao-heung,稻香,稻香,Major HK restaurant group Tao Heung hotpot Cantonese banquet,poi,medium
+beef-tartare,生牛肉他他,生牛肉他他,Raw beef tartare classic French dish HK fine dining and Korean,fnb,high
+laksa,叻沙,叻沙,Southeast Asian spicy coconut curry noodle soup popular in HK,fnb,high
+sweet-sour-pork,生炒骨,生炒骨,Classic Cantonese sweet and sour pork beloved HK comfort food,fnb,high
+stuffed-chicken-wing,瑤柱糯米釀雞翼,瑤柱糯米釀雞翼,Deboned chicken wing conpoy glutinous rice Cantonese banquet,fnb,high
+truffle-pasta,松露意大利麵,松露意大利麵,Truffle pasta indulgent Italian dish black truffle shavings,fnb,high
+risotto,意大利飯,意大利飯,Italian risotto creamy rice dish popular in HK Italian restaurants,fnb,medium
+sun-tong-lok,新同樂,新同樂,Legendary HK Cantonese fine dining Sun Tong Lok abalone luxury,poi,medium
+napoleon-puff,拿破崙泡芙,拿破崙泡芙,Crispy Napoleon puff pastry with cream trending HK bakery Milkfill,fnb,high
+scallion-nougat,葱香牛轧,葱香牛轧,Scallion-flavored nougat Napoleon pastry viral Yu Lian Tea House,fnb,high
+yu-lian-tea-house,裕莲茶楼,裕莲茶楼,Yu Lian Tea House trending chain scallion nougat pastries,poi,medium
+tanka-private-kitchen,蜑家私房菜,蜑家私房菜,Tanka boat-people style private kitchen authentic seafood cuisine,fnb,high
+maocai,冒菜,冒菜,Sichuan-style maocai individual hotpot bowl spicy mala broth,fnb,high
+beef-ball,牛肉丸,牛肉丸,Chaoshan-style hand-pounded beef balls springy texture hotpot,fnb,high
+spicy-fish-skin,麻辣魚皮,麻辣魚皮,Spicy mala fish skin crispy numbing Sichuan-style cold dish,fnb,high
+char-siu-rice,叉燒飯,叉燒飯,HK-style char siu BBQ pork rice iconic comfort food staple,fnb,high
+grilled-chicken-skewers,烤雞串,烤雞串,Middle Eastern-style grilled chicken skewers popular mezze,fnb,medium
+curry-egg-braised-pork-rice,咖哩滑蛋滷肉飯,咖哩滑蛋滷肉飯,HK-style curry scrambled egg braised pork rice affordable comfort,fnb,high
+slow-cook-gyudon,慢煮牛丼,慢煮牛丼,Slow-cooked Japanese beef rice bowl trending HK specialty shops,fnb,high
+boat-noodles,船麵,船麵,Thai boat noodles intense pork-blood broth small bowls,fnb,high
+roasted-cauliflower,烤椰菜花,烤椰菜花,Whole roasted cauliflower trending vegetarian main HK Western,fnb,medium
+avocado-cream,牛油果醬,牛油果醬,Creamy avocado sauce popular HK brunch and Mexican accompaniment,fnb,medium
+ise-ebi,伊勢海老,伊勢海老,Japanese spiny lobster Ise ebi premium HK fine dining,fnb,high
+botan-ebi,牡丹蝦,牡丹蝦,Japanese spot prawn botan ebi sweet creamy sashimi delicacy,fnb,high
+pineapple-cake,鳳梨酥,鳳梨酥,Taiwanese pineapple cake popular gift pastry in HK,fnb,high
+mille-feuille,千層酥,千層酥,Layered puff pastry mille-feuille popular HK bakery dessert,fnb,high
+salted-egg-yolk,鹹蛋黃,鹹蛋黃,Salted egg yolk trending HK flavor snacks pastries sauces,fnb,high
+peanut-brittle,花生酥糖,花生酥糖,Peanut brittle candy traditional HK and Chinese confectionery,fnb,medium
+chocolate-cookies,朱古力曲奇,朱古力曲奇,Chocolate cookies popular HK bakery and festive gifting,fnb,medium
+tiger-prawn,大虎蝦,大虎蝦,Large tiger prawns premium teppanyaki and Cantonese seafood,fnb,high
+okinawa-pork,沖繩豚肉,沖繩豚肉,Okinawan pork prized for rich flavor featured in HK teppanyaki,fnb,high
+crab-fried-rice,蟹肉炒飯,蟹肉炒飯,Fried rice with crab meat popular teppanyaki finale dish,fnb,high
+yellow-curry,黃咖喱,黃咖喱,Thai yellow curry with coconut milk milder than green popular HK,fnb,high
+coconut-soda,椰子梳打,椰子梳打,Coconut soda refreshing Thai drink popular in HK Thai restaurants,fnb,medium
+braised-pork-belly,滷豚肉,滷豚肉,Braised pork belly tender flavorful HK comfort food over rice,fnb,high
+pork-chop-lo-ding,豬扒撈丁,豬扒撈丁,HK-style pork chop tossed instant noodles classic cha chaan teng,fnb,high
+shrimp-soup-pan-fried-cheung-fun,蝦湯煎腸粉,蝦湯煎腸粉,Pan-fried rice rolls in shrimp broth creative HK fusion dish,fnb,high
+xo-sauce,xo醬,XO醬,HK-origin XO sauce premium condiment dried seafood chili,fnb,high
+shrimp-oil,蝦油,蝦油,Aromatic shrimp oil HK condiment from shrimp heads and shells,fnb,high
+michelin-three-star,米芝蓮三星,米芝蓮三星,Michelin three-star restaurants highest fine dining accolade HK,fnb,low
+fusion-cuisine,fusion,Fusion,Fusion cuisine blending culinary traditions popular HK innovative,fnb,low
+fusion-cuisine,創新料理,Fusion菜,"Culinary approach blending elements from different food traditions, a defining characteristic of contemporary HK dining",fnb,low
+tom-yum-goong,冬蔭功,冬蔭功,Thai tom yum goong spicy sour shrimp soup popular HK Thai,fnb,high
+roganic,roganic,Roganic,Michelin-starred sustainable British restaurant Causeway Bay HK,poi,medium
+bushra,bushra,Bushra,Middle Eastern restaurant TST Arabian decor belly dance two floors,poi,medium
+beef-tartare,生牛肉,牛肉他他,"Raw beef tartare dish, trending in HK fine dining and izakaya",fnb,high
+beef-tartare,steaktartare,牛肉他他,"Raw beef tartare dish, trending in HK fine dining and izakaya",fnb,high
+barbecue,燒烤,燒烤,Barbecue grilling broadly popular HK dining format from street to Korean BBQ,fnb,medium
+bacon,bacon,煙肉,"Cured and smoked pork belly (bacon), a staple ingredient in HK Western breakfast, burgers and pasta dishes",fnb,low
+truffle-pasta,truffle pasta,松露意大利麵,Truffle pasta indulgent Italian dish black truffle shavings,fnb,high
+napoleon-puff,泡芙,拿破崙泡芙,Crispy Napoleon puff pastry with cream trending HK bakery Milkfill,fnb,high
+scallion-nougat,葱香牛轧萬得福,葱香牛轧,Scallion-flavored nougat Napoleon pastry viral Yu Lian Tea House,fnb,high
+teppanyaki,日日鐵板燒,鐵板燒,"Japanese cooking style where chefs prepare food on an iron griddle at the table, popular HK dining experience",fnb,high
+sai-yan-cha-dong,西人茶檔,西人茶檔,HK cha chaan teng in Tseung Kwan O creative dishes shrimp soup cheung fun,poi,medium
