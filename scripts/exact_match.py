@@ -355,6 +355,8 @@ def run(date_str: str, skip_unmatched: bool = False) -> None:
             group["enriched_description"] = key_to_desc[ck]
         if ck in key_to_category:
             group["category"] = key_to_category[ck]
+        if ck in key_to_potential:
+            group["potential"] = key_to_potential[ck]
         output[ck] = group
 
     matched_path = run_dir / "matched_groups.json"
