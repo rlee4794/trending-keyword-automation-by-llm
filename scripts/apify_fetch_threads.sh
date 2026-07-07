@@ -15,6 +15,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 CONFIG_PATH="${PROJECT_ROOT}/config/apify_actors_v1.json"
+SOCIAL_CONFIG_PATH="${PROJECT_ROOT}/config/social_listening_v1.json"
 APIFY_FETCH="${SCRIPT_DIR}/apify_fetch.sh"
 
 # ── parse args ───────────────────────────────────────────────────────────
@@ -31,6 +32,11 @@ OUTPUT_PATH="${2:-${PROJECT_ROOT}/runs/${TARGET_DATE}/raw/_apify/threads_apify_r
 
 if [ ! -f "$CONFIG_PATH" ]; then
   echo "ERROR: Config not found: $CONFIG_PATH" >&2
+  exit 1
+fi
+
+if [ ! -f "$SOCIAL_CONFIG_PATH" ]; then
+  echo "ERROR: Config not found: $SOCIAL_CONFIG_PATH" >&2
   exit 1
 fi
 
@@ -65,7 +71,9 @@ with open('$CONFIG_PATH') as f:
 tpl = dict(cfg['threads']['input'])
 tpl['postedAfter'] = '$POSTED_AFTER'
 tpl['postedBefore'] = '$POSTED_BEFORE'
-tpl['searchQueries'] = cfg['threads']['search_queries']
+with open('$SOCIAL_CONFIG_PATH') as f:
+    social = json.load(f)
+tpl['searchQueries'] = social['broad_seeds']['threads_search_queries']
 print(json.dumps(tpl))
 ")
 

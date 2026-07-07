@@ -36,6 +36,16 @@
       "hkfood_station",
       "hkfoodpage",
       "poorjjfoodie"
+    ],
+    "threads_search_queries": [
+      "銅鑼灣美食",
+      "尖沙咀美食",
+      "觀塘美食",
+      "旺角美食",
+      "元朗美食",
+      "中環美食",
+      "新餐廳",
+      "香港餐廳"
     ]
   }
 }
