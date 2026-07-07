@@ -5,7 +5,7 @@
     "result_format": "dataset_items"
   },
   "instagram": {
-    "actor_id": "breathtaking_anthem~instagram-hashtag-posts-scraper",
+    "actor_id": "3d0WBo0KbTUrk4z9V",
     "dataset_key": "defaultDatasetId",
     "result_format": "dataset_items",
     "input": {
@@ -45,17 +45,5 @@
       "新餐廳",
       "香港餐廳"
     ]
-  },
-  "phase2": {
-    "rednote": {
-      "actor_id": "zen-studio/rednote-search-scraper",
-      "dataset_key": "defaultDatasetId",
-      "result_format": "dataset_items"
-    },
-    "tiktok": {
-      "actor_id": "clockworks/free-tiktok-scraper",
-      "dataset_key": "defaultDatasetId",
-      "result_format": "dataset_items"
-    }
   }
 }
