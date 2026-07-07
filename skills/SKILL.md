@@ -242,8 +242,7 @@ Rules:
 - `dishes`, `venues`, `cuisines` arrays — empty `[]` if nothing found
 - `keywords[].post_indices` — which posts mention this keyword (0-based)
 - `keywords[].type` — "dish", "venue", or "cuisine"
-- Google Trends terms that are F&B: include in `keywords` with type, `post_indices: []`
-- Google Trends terms that are NOT F&B: omit entirely
+- Google Trends terms: only include if they are **specific F&B proper nouns** — named dishes (至尊漢堡, 大家樂冬瓜盅), named venues (富臨漁港), or named brands (McGriddles, McDonald). Omit generic category words (套餐, 麵包, 榴槤), supermarket/retail names (百佳超級市場), and non-F&B terms entirely. Included terms get `post_indices: []`
 - Return ONLY the JSON
 
 ---
@@ -333,22 +332,33 @@ print(f'Output: runs/YYYY-MM-DD/daily_trending.json')
 
 ### Step 5 — Present Summary
 
-Show a quick summary in chat:
+Show a quick summary in chat. **Always split into two independent groups** —
+social keywords (ranked by likes/engagement) and Google Trends keywords
+(ranked by search volume). Never mix them in a single ranked list.
+
+If a keyword appears on both channels, tag it `🔥🔍` to signal cross-channel heat.
 
 ```
-✅ Pipeline done.
+✅ Pipeline done. {len(posts)} posts passed threshold → {len(keywords)} keywords extracted
 
-{len(posts)} posts passed threshold → {len(keywords)} keywords extracted
-
-🔥 Top dishes:
+🔥 Social 熱門菜式（按互動熱度）
   • 沙嗲拼盤 (3 posts, 8.5K likes)
   • 冰鎮咕嚕肉 (2 posts, 5.2K likes)
+  • 蝦拉麵 (1 post, 3.1K likes)
 
-📍 Top venues:
+🔍 Google 熱搜關鍵詞（按搜尋量）
+  • 至尊漢堡 (2,000 vol)
+  • 燒鵝 (1,000 vol)
+  • 大家樂冬瓜盃 (200 vol)
+
+📍 Social 熱門餐廳
   • 壽司郎 (5 posts, 12K likes)
   • 麥當勞 (3 posts, 9.1K likes)
 
-🍽️ Cuisines: 日本菜, 泰國菜, 川菜
+🔍 Google 熱搜餐廳
+  • 富臨漁港 (2,000 vol)
+
+🍽️ 熱門菜系: 日本菜, 泰國菜, 川菜
 
 Full data: runs/YYYY-MM-DD/daily_trending.json
 ```

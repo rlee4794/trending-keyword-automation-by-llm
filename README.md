@@ -68,5 +68,5 @@ Three steps:
 | User says | Action |
 |-----------|--------|
 | "run trending pipeline" | Full run (fetch → filter → extract → output) |
-| "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending.json` |
+| "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending.json` → split Social / Google |
 | "compare trends this week" | Read 7 days, Agent describes patterns |
