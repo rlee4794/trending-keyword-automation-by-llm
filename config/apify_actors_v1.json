@@ -10,7 +10,7 @@
     "result_format": "dataset_items",
     "input": {
       "hashtag": "",
-      "scrape_type": "recent",
+      "scrape_type": "top",
       "max_items": 100
     }
   },
