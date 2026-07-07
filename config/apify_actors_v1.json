@@ -10,7 +10,8 @@
     "result_format": "dataset_items",
     "input": {
       "hashtag": "",
-      "maxItems": 100
+      "scrape_type": "recent",
+      "max_items": 100
     }
   },
   "instagram_users": {
@@ -19,7 +20,8 @@
     "result_format": "dataset_items",
     "input": {
       "username": "",
-      "maxPosts": 40
+      "scrape_type": "posts",
+      "max_items": 40
     }
   },
   "threads": {
