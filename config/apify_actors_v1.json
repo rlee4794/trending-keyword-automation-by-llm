@@ -1,6 +1,6 @@
 {
   "google": {
-    "actor_id": "data_xplorer~google-trends-trending-now",
+    "actor_id": "nWhM7vTPu16lcwuIg",
     "dataset_key": "defaultDatasetId",
     "result_format": "dataset_items"
   },
@@ -14,7 +14,7 @@
     }
   },
   "instagram_users": {
-    "actor_id": "queenlike_xystos/instagram-posts-reels-scraper---no-cookies",
+    "actor_id": "40m9Ov3RdhuAENlJ0",
     "dataset_key": "defaultDatasetId",
     "result_format": "dataset_items",
     "input": {
@@ -23,7 +23,7 @@
     }
   },
   "threads": {
-    "actor_id": "automation-lab/threads-scraper",
+    "actor_id": "yacNYZpu9F3C8EATQ",
     "dataset_key": "defaultDatasetId",
     "result_format": "dataset_items",
     "input": {

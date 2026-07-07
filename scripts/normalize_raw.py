@@ -119,18 +119,42 @@ def _normalise_google_trends(
     broad_seed_group: list[str],
     windows: dict[str, str],
 ) -> dict[str, Any]:
-    """Convert Google Trends Apify dataset items into pipeline-normalised format."""
+    """Convert Google Trends Apify dataset items into pipeline-normalised format.
+
+    Supports two actor output formats:
+    1. Flat list: [{"term": "xxx", "trend_volume_raw": 500000}, ...]
+    2. Nested (nWhM7vTPu16lcwuIg): [{"geo": "HK", "trending_searches": [{"term": ..., "trend_volume_formatted": ...}]}]
+    """
     records: list[dict[str, Any]] = []
-    for item in raw_items:
-        term = item.get("term") or ""
-        current_volume = item.get("trend_volume_raw", 0) or 0
-        records.append({
-            "raw_representative": term,
-            "source_kind": "trending_search",
-            "current_volume": current_volume,
-            "previous_volume": None,
-            "raw_payload": item,
-        })
+
+    # Detect format: if any item has a "trending_searches" key, flatten it
+    if raw_items and any("trending_searches" in item for item in raw_items):
+        # Nested format — flatten trending_searches from all items
+        for item in raw_items:
+            geo = item.get("geo", "")
+            language = item.get("language", "")
+            for s in item.get("trending_searches", []):
+                term = s.get("term") or ""
+                current_volume = s.get("trend_volume_formatted", 0) or 0
+                records.append({
+                    "raw_representative": term,
+                    "source_kind": "trending_search",
+                    "current_volume": current_volume,
+                    "previous_volume": None,
+                    "raw_payload": {**s, "geo": geo, "language": language},
+                })
+    else:
+        # Flat format (original)
+        for item in raw_items:
+            term = item.get("term") or ""
+            current_volume = item.get("trend_volume_raw", 0) or 0
+            records.append({
+                "raw_representative": term,
+                "source_kind": "trending_search",
+                "current_volume": current_volume,
+                "previous_volume": None,
+                "raw_payload": item,
+            })
 
     return {
         "platform": "google_trends",
