@@ -5,11 +5,13 @@ Reads:
   runs/{date}/raw/_apify/google_apify_raw.json
   runs/{date}/raw/_apify/ig_*.json
   runs/{date}/raw/_apify/ig_user_*.json
+  runs/{date}/raw/_apify/threads_apify_raw.json
   config/social_listening_v1.json (for broad_seed_group metadata)
 
 Writes:
   runs/{date}/raw/google_raw.json
   runs/{date}/raw/instagram_raw.json
+  runs/{date}/raw/threads_raw.json
 
 Usage:
   python3 normalize_raw.py --date 2026-06-25 --run-dir runs/2026-06-25 --config config/social_listening_v1.json
@@ -240,6 +242,66 @@ def _normalise_instagram_user_posts(
     return records
 
 
+def _normalise_threads_posts(
+    raw_items: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    """Convert Threads search scraper output into pipeline-normalised records.
+
+    The Threads scraper (yacNYZpu9F3C8EATQ) returns posts matching
+    search queries. Each post is treated as a signal from the Threads
+    platform (source_kind = "search").
+    """
+    records: list[dict[str, Any]] = []
+    for item in raw_items:
+        text = item.get("text") or ""
+        likes = item.get("likeCount", 0) or 0
+        replies = item.get("replyCount", 0) or 0
+        reposts = item.get("repostCount", 0) or 0
+        records.append({
+            "raw_representative": item.get("searchQuery", "threads"),
+            "source_kind": "search",
+            "current_volume": 1,
+            "previous_volume": None,
+            "raw_payload": {
+                "engagement_hint": _engagement_tier(likes, replies),
+                "geo": "HK",
+                "likes": likes,
+                "comments": replies,
+                "reposts": reposts,
+                "taken_at_timestamp": item.get("date"),
+                "hashtags": item.get("hashtags", []),
+                "url": item.get("url"),
+                "caption_snippet": text[:500] if text else "",
+                "search_query": item.get("searchQuery"),
+                "username": item.get("username"),
+            },
+        })
+    return records
+
+
+def _load_seen_threads_urls(run_dir: Path, lookback_days: int = 6) -> set[str]:
+    """Collect all Threads post URLs from previous N days' threads_raw.json."""
+    seen: set[str] = set()
+    run_date = date.fromisoformat(run_dir.name)
+
+    for i in range(1, lookback_days + 1):
+        prev_date = run_date - timedelta(days=i)
+        prev_raw = Path(f"runs/{prev_date.isoformat()}/raw/threads_raw.json")
+        if not prev_raw.exists():
+            continue
+        try:
+            with prev_raw.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+            for rec in data.get("records", []):
+                url = (rec.get("raw_payload") or {}).get("url", "")
+                if url:
+                    seen.add(url)
+        except (json.JSONDecodeError, OSError):
+            continue
+
+    return seen
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -397,6 +459,82 @@ def main() -> None:
         print(f"instagram: {len(all_records)} records kept, {dedup_skipped} dedup-skipped{age_msg} (from {total_before} total)")
     else:
         print("instagram: SKIPPED (no _apify data)")
+
+    # --- Threads (search posts, with age filter + cross-day dedup) ---
+    threads_apify_path = apify_dir / "threads_apify_raw.json"
+    if threads_apify_path.exists() and threads_apify_path.stat().st_size > 0:
+        with threads_apify_path.open(encoding="utf-8") as f:
+            threads_raw_items = json.load(f)
+        if not isinstance(threads_raw_items, list):
+            threads_raw_items = []
+
+        # Age filter (same as Instagram)
+        threads_age_cutoff = None
+        if max_age_days > 0:
+            scrape_dt = datetime.strptime(target_date, "%Y-%m-%d").replace(tzinfo=HKT)
+            threads_age_cutoff = scrape_dt - timedelta(days=max_age_days)
+            print(f"threads: age filter enabled, discarding posts older than {threads_age_cutoff.isoformat()}", file=sys.stderr)
+
+        # Cross-day dedup
+        seen_threads_urls = _load_seen_threads_urls(run_dir, lookback_days=6)
+        print(f"threads: {len(seen_threads_urls)} seen URLs from previous days", file=sys.stderr)
+
+        all_threads: list[dict[str, Any]] = []
+        threads_age_skipped = 0
+        threads_dedup_skipped = 0
+        records = _normalise_threads_posts(threads_raw_items)
+        for rec in records:
+            if threads_age_cutoff is not None:
+                taken_at = _parse_timestamp(
+                    (rec.get("raw_payload") or {}).get("taken_at_timestamp")
+                )
+                if _is_too_old(taken_at, threads_age_cutoff):
+                    threads_age_skipped += 1
+                    continue
+            url = (rec.get("raw_payload") or {}).get("url", "")
+            if url and url in seen_threads_urls:
+                threads_dedup_skipped += 1
+                continue
+            all_threads.append(rec)
+
+        threads_total_before = len(all_threads) + threads_dedup_skipped + threads_age_skipped
+
+        threads_output = {
+            "platform": "threads",
+            "run_at": windows["current_start"],
+            "window_current": {
+                "start": windows["current_start"],
+                "end": windows["current_end"],
+            },
+            "window_previous": {
+                "start": windows["previous_start"],
+                "end": windows["previous_end"],
+            },
+            "seed_context": {
+                "broad_seed_group": broad_seed_group,
+            },
+            "records": all_threads,
+            "_dedup": {
+                "lookback_days": 6,
+                "seen_urls_count": len(seen_threads_urls),
+                "skipped": threads_dedup_skipped,
+            },
+        }
+        if max_age_days > 0:
+            threads_output["_age_filter"] = {
+                "max_age_days": max_age_days,
+                "cutoff": threads_age_cutoff.isoformat() if threads_age_cutoff else None,
+                "skipped": threads_age_skipped,
+            }
+        threads_out_path = run_dir / "raw" / "threads_raw.json"
+        threads_out_path.parent.mkdir(parents=True, exist_ok=True)
+        threads_out_path.write_text(
+            json.dumps(threads_output, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        threads_age_msg = f", {threads_age_skipped} age-skipped" if threads_age_skipped > 0 else ""
+        print(f"threads: {len(all_threads)} records kept, {threads_dedup_skipped} dedup-skipped{threads_age_msg} (from {threads_total_before} total)")
+    else:
+        print("threads: SKIPPED (no _apify data)")
 
 
 if __name__ == "__main__":
