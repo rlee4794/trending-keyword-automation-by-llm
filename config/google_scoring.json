@@ -1,6 +1,0 @@
-{
-  "method": "log_normalize",
-  "log_base": "e",
-  "min_volume_floor": 50,
-  "volume_field": "current_volume"
-}

@@ -1,0 +1,13 @@
+{
+  "instagram": {
+    "min_likes": 1000,
+    "min_shares": 500
+  },
+  "threads": {
+    "min_likes": 1000,
+    "min_shares": 500
+  },
+  "google": {
+    "min_volume": 0
+  }
+}

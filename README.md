@@ -1,118 +1,72 @@
 # Trending Keyword Automation By LLM
 
-HK F&B social media trending keyword discovery and ranking pipeline.
-Runs daily via OpenClaw agent-driven pipeline: fetches Google Trends +
-Instagram (hashtags + curated foodie accounts) data via Apify, extracts
-and filters F&B keywords, normalizes against a canonical mapping,
-reviews unmatched terms via LLM, then ranks and presents weekly trends.
+HK F&B social media trending keyword discovery pipeline.
+Fetches Google Trends + Instagram + Threads data via Apify,
+filters to high-engagement posts, then Agent extracts specific
+dish names, venue names, and cuisine types.
 
-## Architecture
-
-The pipeline is **OpenClaw agent-driven** — the agent orchestrates each
-step by reading skill files, executing shell/Python scripts, and
-performing LLM classification where needed. No monolithic Python CLI.
+## Pipeline (v2.0)
 
 ```
-skills/SKILL.md          ← Main entry point
-├── skills/01-fetch/        Step 1: Apify fetch + normalize
-├── skills/02a-extract-keywords/  Step 2A: IG keyword extraction (LLM)
-├── skills/02b-filter-fnb/        Step 2B: F&B binary filter (LLM)
-├── skills/03-normalize/          Step 3: Exact-match normalization
-├── skills/04-review/             Step 4: LLM review of unmatched terms
-├── skills/05-ranking/            Step 5: Weekly ranking (14-day window)
-└── skills/06-present/            Step 6: Present results
+Apify fetch → normalize → threshold filter → Agent extraction → JSON output
 ```
 
-## Data Sources
+Three steps:
 
-| Source | Method | Actor / Details |
-|--------|--------|-----------------|
-| Google Trends | Apify | `data_xplorer~google-trends-trending-now` |
-| IG Hashtags | Apify | 4 hashtags: #hkfood, #hkfoodie, #香港美食, #相機食先 |
-| IG Users | Apify | 10 curated HK foodie accounts (see config) |
-| Threads | Config only | Actor configured, not yet wired into pipeline |
-
-## Key Assets
-
-| Path | Purpose | Size |
-|------|---------|------|
-| `data/mappings/canonical_mapping.csv` | Core mapping table (6 columns: canonical_key, match_value, display_term, enriched_description, category, potential) | ~1,134 rows |
-| `scripts/apify_fetch.sh` | Apify actor runner (trigger → poll → download) | Shell |
-| `scripts/normalize_raw.py` | Apify raw → pipeline format + cross-day dedup + age filter | Python |
-| `scripts/exact_match.py` | Deterministic canonical mapping lookup | Python |
-| `scripts/backfill_descriptions.py` | One-shot enriched_description backfill | Python |
-| `config/apify_actors_v1.json` | Apify actor IDs and input templates | JSON |
-| `config/social_listening_v1.json` | Platform seeds, weights, thresholds | JSON |
-| `config/instagram_scoring.json` | IG engagement weights and log-normalisation params | JSON |
-| `config/google_scoring.json` | Google scoring params | JSON |
-| `config/ranking.json` | Platform weights, bonus, trend direction thresholds | JSON |
-
-## Pipeline Steps
-
-### Step 1 — Fetch
-15 parallel Apify actor runs (1 Google Trends + 4 IG hashtags + 10 IG users),
-then `normalize_raw.py` merges and normalizes into `google_raw.json` and
-`instagram_raw.json` with cross-day dedup (6-day lookback) and 30-day age filter.
-
-### Step 2A — Extract Keywords (LLM)
-Extracts up to 8 F&B keywords per Instagram caption. Batch size: 100 posts.
-Resume-safe: skips already-processed records on restart.
-
-### Step 2B — Filter F&B (LLM)
-Binary classification of all candidate terms (Google + Instagram) as F&B or
-non-F&B. Fail-open: keeps all terms if classification fails.
-
-### Step 3 — Normalize (Exact Match)
-Deterministic lookup against `canonical_mapping.csv`. Matched terms grouped
-by canonical key. Unmatched terms queued for Step 4. Zero LLM tokens.
-
-### Step 4 — LLM Review
-Batch classification of unmatched terms (75/batch): CREATE (new concept),
-MERGE (alias for existing key), or DISCARD (noise). Expands mapping, then
-re-normalizes to produce final `matched_groups.json`.
-
-### Step 5 — Ranking
-Accumulates 14 days of `matched_groups.json`, splits into current-week
-(T-6…T) and previous-week (T-13…T-7) windows, computes per-window platform
-scores, compares to determine trend direction, ranks by composite score.
-
-**Scoring:** Instagram 60% + Google 40% + 0.1 dual-platform bonus.
-**Threshold:** composite score ≥ 0.10 for inclusion.
-
-### Step 6 — Present
-Reads `weekly_fnb_trending.json`, updates `runs/latest` symlink, exports
-CSV files, presents formatted summary.
+1. **Fetch** — 15 parallel Apify actors (1 Google + 4 IG hashtags + 10 IG users),
+   then `normalize_raw.py` merges + deduplicates
+2. **Filter** — `filter_threshold.py` keeps posts above engagement threshold
+   (like≥1000 AND share≥500 by default, adjustable in `config/threshold.json`)
+3. **Extract** — Agent reads filtered posts + Google Trends, extracts dish/venue/cuisine
+   keywords with emphasis on specificity (蝦拉麵 not 拉麵) and common HK Chinese names
+   (壽司郎 not Sushiro)
 
 ## Output
 
-| Artifact | Path |
-|----------|------|
-| Weekly ranked JSON | `runs/YYYY-MM-DD/weekly_fnb_trending.json` (schema v3.0) |
-| Full CSV | `runs/YYYY-MM-DD/weekly_fnb_trending.csv` |
-| High-potential CSV | `runs/YYYY-MM-DD/weekly_fnb_trending_high_potential.csv` |
-| Latest symlink | `runs/latest` → `runs/YYYY-MM-DD` |
+`runs/YYYY-MM-DD/daily_trending.json` (schema v1.0):
 
-## Current Status
+```json
+{
+  "schema_version": "1.0",
+  "date": "2026-07-07",
+  "threshold": { "instagram": { "min_likes": 1000, "min_shares": 500 } },
+  "posts": [
+    {
+      "platform": "instagram",
+      "likes": 3200,
+      "caption_snippet": "北角呢間隱世串燒店嘅沙嗲拼盤...",
+      "extracted": { "dishes": ["沙嗲拼盤"], "venues": ["北角串燒店"] }
+    }
+  ],
+  "google_trends": [{ "term": "壽司郎", "volume": 85 }],
+  "keywords": [
+    { "term": "沙嗲拼盤", "type": "dish", "post_count": 3, "total_likes": 8500 }
+  ]
+}
+```
 
-| Metric | Value |
-|--------|-------|
-| Latest run | 2026-07-05 |
-| Accumulated runs | 11 days (2026-06-23 → 2026-07-05) |
-| Keywords ranked | 242 |
-| Score range | 0.10 – 0.73 |
-| Canonical mapping | 1,134 rows |
-| Trend directions | Mostly `new` (cold start — previous-week window still filling) |
+## Key Assets
+
+| Path | Purpose |
+|------|---------|
+| `skills/SKILL.md` | Agent procedure (fetch → filter → extract → output) |
+| `scripts/apify_fetch.sh` | Apify actor runner |
+| `scripts/normalize_raw.py` | Apify raw → pipeline format + cross-day dedup |
+| `scripts/filter_threshold.py` | Engagement threshold filter |
+| `config/threshold.json` | Threshold config per platform |
+| `config/apify_actors_v1.json` | Apify actor IDs and input templates |
+| `config/social_listening_v1.json` | Platform seeds (hashtags + users) |
 
 ## Environment
 
-| Variable | Required | Purpose |
-|----------|----------|---------|
-| `APIFY_TOKEN` | Yes (live mode) | Apify API authentication |
+| Variable | Purpose |
+|----------|---------|
+| `APIFY_TOKEN` | Apify API authentication |
 
 ## Quick Reference
 
 | User says | Action |
 |-----------|--------|
-| "run trending pipeline" | Full live run (Steps 1–6) |
-| "show this week's trends" | Read `runs/latest/weekly_fnb_trending.json` |
-| "run for 2026-06-20" | Live run for a specific date |
+| "run trending pipeline" | Full run (fetch → filter → extract → output) |
+| "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending.json` |
+| "compare trends this week" | Read 7 days, Agent describes patterns |
