@@ -19,8 +19,28 @@ dish names, venue names, and cuisine types.
 | User says | Action |
 |-----------|--------|
 | "run trending pipeline" | Full run (Steps 1-4 + Summary) |
-| "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending.json` |
-| "trend analysis" / "compare trends" | Run Step 5 (7-day snapshot comparison, on-demand) |
+| "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending.json` → present Top 10 by category with background |
+| "trend analysis" / "compare trends" | Run Step T (7-day snapshot comparison, on-demand) |
+
+### ⚠️ Already-run rule
+
+If today's pipeline has **already completed** (i.e. `daily_trending.json` exists
+and was generated today), and the user asks about trends **without** explicitly
+requesting a re-run (e.g. just "run trending pipeline" / "有什麼trends" /
+"今日有咩趨勢"), do NOT re-execute the pipeline. Instead, read the existing
+`daily_trending.json` and present the results directly:
+
+1. **Top 10 by category** — split into:
+   - 🔥 Social 熱門菜式（按 likes 排序，最多 10 個）
+   - 📍 Social 熱門餐廳（按 likes 排序，最多 10 個）
+   - 🍽️ 熱門菜系（按 post_count 排序，最多 10 個）
+   - 🔍 Google 熱搜（按 volume 排序，最多 10 個，只列 F&B 相關）
+2. **Short background** — for each keyword, include a one-line context from
+   `caption_snippet` or source info. For example:
+   - 梅菜扣肉飯 — 源自 7-11 聯乘貼文，兩日內累積 67K likes
+   - 沙嗲牛 — 4 篇貼文提及，來自 #hkfoodie 及 @girlsfoodies
+3. If the user explicitly says "重跑" / "重新 fetch" / "rerun" / "再run多次",
+   then execute the full pipeline again.
 
 ## Pipeline Flow
 
@@ -299,36 +319,44 @@ The assembly script handles:
 
 ### Step 5 — Present Summary
 
-Show a quick summary in chat. **Always split into two independent groups** —
-social keywords (ranked by likes/engagement) and Google Trends keywords
-(ranked by search volume). Never mix them in a single ranked list.
+Show a detailed summary in chat. **Always split into four independent groups** —
+social dishes, social venues, cuisines, and Google Trends keywords. Never mix them.
 
 If a keyword appears on both channels, tag it `🔥🔍` to signal cross-channel heat.
+
+**Format: Top 10 per category, with short background for each item.**
 
 ```
 ✅ Pipeline done. {len(posts)} posts passed threshold → {len(keywords)} keywords extracted
 
-🔥 Social 熱門菜式（按互動熱度）
-  • 沙嗲拼盤 (3 posts, 8.5K likes)
-  • 冰鎮咕嚕肉 (2 posts, 5.2K likes)
-  • 蝦拉麵 (1 post, 3.1K likes)
+🔥 Social 熱門菜式（按互動熱度，Top 10）
+  • 梅菜扣肉飯 (2 posts, 67.5K likes) — 源自 7-11 聯乘貼文，兩日內爆發
+  • 沙嗲牛 (4 posts, 40.1K likes) — #hkfoodie 及 @girlsfoodies 多位 foodie 提及
+  • 蝦多士 (4 posts, 9.8K likes) — 港式茶記經典小食，Threads 上熱議
 
-🔍 Google 熱搜關鍵詞（按搜尋量）
-  • 至尊漢堡 (2,000 vol)
-  • 燒鵝 (1,000 vol)
-  • 大家樂冬瓜盃 (200 vol)
+📍 Social 熱門餐廳（按互動熱度，Top 10）
+  • 7-11 (2 posts, 67.5K likes) — 便利商店聯乘新品引發熱潮
+  • 夜嚐野 (2 posts, 27.8K likes) — 深水埗新開宵夜檔，串燒為主
 
-📍 Social 熱門餐廳
-  • 壽司郎 (5 posts, 12K likes)
-  • 麥當勞 (3 posts, 9.1K likes)
+🍽️ 熱門菜系（按提及 post 數，Top 10）
+  • 甜品 (20 posts) — 涵蓋港式糖水、日式刨冰、西式蛋糕
+  • 咖啡 (12 posts) — 獨立咖啡店探店潮持續
 
-🔍 Google 熱搜餐廳
+🔍 Google 熱搜關鍵詞（按搜尋量，Top 10）
+  • 大家樂冬瓜盅 (200 vol) — 季節限定回歸 🔥🔍
   • 富臨漁港 (2,000 vol)
-
-🍽️ 熱門菜系: 日本菜, 泰國菜, 川菜
 
 Full data: runs/YYYY-MM-DD/daily_trending.json
 ```
+
+#### Background extraction rules
+
+For each keyword's background, infer from the associated posts' `caption_snippet`
+and `source` fields. Keep it to one short line:
+- **Dishes**: mention the source context (聯乘/新開/限時/傳統) and notable platform
+- **Venues**: mention location/type (連鎖/新開/地區) and what they're known for
+- **Cuisines**: mention what sub-types are trending within it
+- **Google**: if the term also appears in social keywords, tag `🔥🔍`
 
 ## Edge Cases
 
