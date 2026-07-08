@@ -10,7 +10,7 @@
 # - On FAILED/ABORTED/TIMED-OUT: exit 1
 # - On timeout: exit 1
 # - On empty dataset: write [] to output_path, exit 0
-# - Retry once on transient failure (HTTP 5xx, network error)
+# - Retry up to 2 additional times on actor start failure (404, 5xx, network error)
 set -euo pipefail
 
 ACTOR_ID="${1:?Usage: apify_fetch.sh <actor_id> <input_json> <output_path> [timeout_secs] [poll_interval_secs]}"
@@ -62,16 +62,34 @@ _apify_call() {
 }
 
 # ---------------------------------------------------------------------------
-# Step 1: Start actor run
+# Step 1: Start actor run (with retry: up to 3 total attempts)
 # ---------------------------------------------------------------------------
-echo "[apify_fetch] Starting actor: $ACTOR_ID" >&2
+MAX_START_ATTEMPTS=3
 START_URL="${APIFY_BASE}/acts/${ACTOR_ID}/runs?token=${TOKEN}"
-HTTP_CODE=$(_apify_call "POST" "$START_URL" "$INPUT_JSON")
 
-if [ "$HTTP_CODE" != "201" ] && [ "$HTTP_CODE" != "200" ]; then
-  echo "[apify_fetch] ERROR: Failed to start actor (HTTP $HTTP_CODE)" >&2
+START_ATTEMPT=0
+while [ $START_ATTEMPT -lt $MAX_START_ATTEMPTS ]; do
+  START_ATTEMPT=$((START_ATTEMPT + 1))
+  echo "[apify_fetch] Starting actor: $ACTOR_ID (attempt $START_ATTEMPT/$MAX_START_ATTEMPTS)" >&2
+  HTTP_CODE=$(_apify_call "POST" "$START_URL" "$INPUT_JSON")
+
+  if [ "$HTTP_CODE" = "201" ] || [ "$HTTP_CODE" = "200" ]; then
+    break
+  fi
+
+  echo "[apify_fetch] WARNING: Failed to start actor (HTTP $HTTP_CODE)" >&2
   cat /tmp/apify_resp_$$.json >&2
   rm -f /tmp/apify_resp_$$.json
+
+  if [ $START_ATTEMPT -lt $MAX_START_ATTEMPTS ]; then
+    SLEEP_SECS=$((START_ATTEMPT * 3))
+    echo "[apify_fetch] Retrying in ${SLEEP_SECS}s..." >&2
+    sleep $SLEEP_SECS
+  fi
+done
+
+if [ "$HTTP_CODE" != "201" ] && [ "$HTTP_CODE" != "200" ]; then
+  echo "[apify_fetch] ERROR: Failed to start actor after $MAX_START_ATTEMPTS attempts" >&2
   exit 1
 fi
 
