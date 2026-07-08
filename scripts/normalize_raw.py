@@ -247,18 +247,24 @@ def _normalise_threads_posts(
 ) -> list[dict[str, Any]]:
     """Convert Threads search scraper output into pipeline-normalised records.
 
-    The Threads scraper (yacNYZpu9F3C8EATQ) returns posts matching
-    search queries. Each post is treated as a signal from the Threads
+    The Threads scraper (hAn2r6106dhk7GOxS) returns posts matching
+    keywords. Each post is treated as a signal from the Threads
     platform (source_kind = "search").
+
+    Input fields: post_url, text_content, created_at, username, display_name,
+    like_count, reply_count, repost_count, share_count, view_count,
+    quote_count, hashtags, mentions, search_keyword, search_filter, etc.
     """
     records: list[dict[str, Any]] = []
     for item in raw_items:
-        text = item.get("text") or ""
-        likes = item.get("likeCount", 0) or 0
-        replies = item.get("replyCount", 0) or 0
-        reposts = item.get("repostCount", 0) or 0
+        text = item.get("text_content") or ""
+        likes = item.get("like_count", 0) or 0
+        replies = item.get("reply_count", 0) or 0
+        reposts = item.get("repost_count", 0) or 0
+        shares = item.get("share_count", 0) or 0
         records.append({
-            "raw_representative": item.get("searchQuery", "threads"),
+            "raw_term": item.get("search_keyword", "threads"),
+            "raw_representative": item.get("search_keyword", "threads"),
             "source_kind": "search",
             "current_volume": 1,
             "previous_volume": None,
@@ -268,12 +274,16 @@ def _normalise_threads_posts(
                 "likes": likes,
                 "comments": replies,
                 "reposts": reposts,
-                "taken_at_timestamp": item.get("date"),
+                "reshare_count": shares,
+                "taken_at_timestamp": item.get("created_at"),
                 "hashtags": item.get("hashtags", []),
-                "url": item.get("url"),
+                "url": item.get("post_url", ""),
                 "caption_snippet": text[:500] if text else "",
-                "search_query": item.get("searchQuery"),
+                "search_keyword": item.get("search_keyword"),
+                "search_filter": item.get("search_filter"),
                 "username": item.get("username"),
+                "display_name": item.get("display_name"),
+                "view_count": item.get("view_count"),
             },
         })
     return records
