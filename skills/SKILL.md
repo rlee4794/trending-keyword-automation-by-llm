@@ -18,9 +18,9 @@ dish names, venue names, and cuisine types.
 
 | User says | Action |
 |-----------|--------|
-| "run trending pipeline" | Full run (all 6 steps) |
+| "run trending pipeline" | Full run (Steps 1-4 + Summary) |
 | "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending.json` |
-| "trend analysis" | Read `runs/YYYY-MM-DD/daily_trending.json` trend fields |
+| "trend analysis" / "compare trends" | Run Step 5 (7-day snapshot comparison, on-demand) |
 
 ## Pipeline Flow
 
@@ -29,9 +29,12 @@ Step 1: Fetch    → apify_fetch.sh (15 actors) → normalize_raw.py
 Step 2: Filter   → filter_threshold.py (like>threshold AND share>threshold)
 Step 3: Extract  → Agent reads filtered posts + Google Trends → extracts keywords
 Step 4: Assemble → assemble_output.py → daily_trending.json
-Step 5: Trends   → trend_comparison.py (prepare) → Agent (fuzzy match) →
-                   trend_comparison.py (merge) → daily_trending.json enriched
-Step 6: Summary  → Present daily results + new/surging highlights in chat
+Step 5: Summary  → Present daily results in chat
+
+--- on-demand only (not part of daily pipeline) ---
+
+Step T: Trends  → trend_comparison.py (prepare) → Agent (fuzzy match) →
+                  trend_comparison.py (merge) → daily_trending.json enriched
 ```
 
 ## Output Schema
@@ -277,13 +280,61 @@ The assembly script handles:
 - Keyword aggregation with engagement stats
 - Writing `daily_trending.json` + updating `runs/latest` symlink
 
-### Step 5 — Trend Comparison (7-day snapshot)
+### Step 5 — Present Summary
+
+Show a quick summary in chat. **Always split into two independent groups** —
+social keywords (ranked by likes/engagement) and Google Trends keywords
+(ranked by search volume). Never mix them in a single ranked list.
+
+If a keyword appears on both channels, tag it `🔥🔍` to signal cross-channel heat.
+
+```
+✅ Pipeline done. {len(posts)} posts passed threshold → {len(keywords)} keywords extracted
+
+🔥 Social 熱門菜式（按互動熱度）
+  • 沙嗲拼盤 (3 posts, 8.5K likes)
+  • 冰鎮咕嚕肉 (2 posts, 5.2K likes)
+  • 蝦拉麵 (1 post, 3.1K likes)
+
+🔍 Google 熱搜關鍵詞（按搜尋量）
+  • 至尊漢堡 (2,000 vol)
+  • 燒鵝 (1,000 vol)
+  • 大家樂冬瓜盃 (200 vol)
+
+📍 Social 熱門餐廳
+  • 壽司郎 (5 posts, 12K likes)
+  • 麥當勞 (3 posts, 9.1K likes)
+
+🔍 Google 熱搜餐廳
+  • 富臨漁港 (2,000 vol)
+
+🍽️ 熱門菜系: 日本菜, 泰國菜, 川菜
+
+Full data: runs/YYYY-MM-DD/daily_trending.json
+```
+
+## Edge Cases
+
+| Scenario | Handling |
+|----------|----------|
+| 0 posts pass threshold | Warn, suggest lowering `config/threshold.json` |
+| LLM extraction fails | Retry once. If still failing, write posts without `extracted` field |
+| Malformed JSON from LLM | Retry once with stricter prompt |
+| 7-days-ago data unavailable | Skip trend comparison, keywords get no `trend` field |
+| Agent fuzzy match fails or returns invalid JSON | Retry once. If still failing, skip trend merge |
+
+## Reading Trends
+
+Trend comparison is an **on-demand** step (Step T), not part of the daily pipeline.
+When user says "trend analysis" or "compare trends":
+
+### Step T — Trend Comparison (7-day snapshot, on-demand)
 
 Compare today's keywords against 7 days ago. Only two classifications:
 - **new**: keyword did not appear in any of the last 7 days
 - **surging**: keyword existed 7 days ago, but post_count increased ≥50%
 
-#### Step 5a — Prepare snapshots
+#### Step Ta — Prepare snapshots
 
 ```bash
 python3 scripts/trend_comparison.py --date YYYY-MM-DD --output /tmp/trend_snapshots.json
@@ -296,7 +347,7 @@ and all intermediate days, then outputs:
 - `seen_in_period`: exact-match set of all terms from intermediate days
   (used to exclude false 'new' — a keyword seen on day-3 is NOT new)
 
-#### Step 5b — Agent fuzzy matching
+#### Step Tb — Agent fuzzy matching
 
 Read `/tmp/trend_snapshots.json`. The Agent does fuzzy matching between
 today's keywords and the previous period keywords, then classifies each.
@@ -378,7 +429,7 @@ Rules:
 
 ---
 
-#### Step 5c — Merge results
+#### Step Tc — Merge results
 
 After receiving the Agent's JSON, merge trend fields back into today's
 daily_trending.json:
@@ -405,59 +456,8 @@ This adds a `trend` field to each matched keyword:
 
 Keywords without a trend signal get no `trend` field.
 
-### Step 6 — Present Summary
+### Present Trend Summary
 
-Show a quick summary in chat. **Always split into two independent groups** —
-social keywords (ranked by likes/engagement) and Google Trends keywords
-(ranked by search volume). Never mix them in a single ranked list.
-
-Highlight trend signals from the `trend` field:
+After merging, highlight trend signals in chat:
 - 🆕 **New**: first appeared in the last 7 days
 - 🔥 **Surging**: post_count up ≥50% vs 7 days ago
-
-If a keyword appears on both channels, tag it `🔥🔍` to signal cross-channel heat.
-
-```
-✅ Pipeline done. {len(posts)} posts passed threshold → {len(keywords)} keywords extracted
-
-🔥 Social 熱門菜式（按互動熱度）
-  • 沙嗲拼盤 (3 posts, 8.5K likes)
-  • 冰鎮咕嚕肉 (2 posts, 5.2K likes)
-  • 蝦拉麵 (1 post, 3.1K likes)
-
-🔍 Google 熱搜關鍵詞（按搜尋量）
-  • 至尊漢堡 (2,000 vol)
-  • 燒鵝 (1,000 vol)
-  • 大家樂冬瓜盃 (200 vol)
-
-📍 Social 熱門餐廳
-  • 壽司郎 (5 posts, 12K likes)
-  • 麥當勞 (3 posts, 9.1K likes)
-
-🔍 Google 熱搜餐廳
-  • 富臨漁港 (2,000 vol)
-
-🍽️ 熱門菜系: 日本菜, 泰國菜, 川菜
-
-Full data: runs/YYYY-MM-DD/daily_trending.json
-```
-
-## Edge Cases
-
-| Scenario | Handling |
-|----------|----------|
-| 0 posts pass threshold | Warn, suggest lowering `config/threshold.json` |
-| LLM extraction fails | Retry once. If still failing, write posts without `extracted` field |
-| Malformed JSON from LLM | Retry once with stricter prompt |
-| 7-days-ago data unavailable | Skip trend comparison, keywords get no `trend` field |
-| Agent fuzzy match fails or returns invalid JSON | Retry once. If still failing, skip trend merge |
-
-## Reading Trends
-
-Trend comparison runs automatically as part of the pipeline (Step 5).
-Each keyword in `daily_trending.json` may have a `trend` field with
-direction ("new" or "surging") and 7-day comparison stats.
-
-When user asks to compare trends outside of a pipeline run, Agent uses
-the `trend` fields from 7-14 `daily_trending.json` files to describe
-patterns in natural language. No scoring formula needed.
