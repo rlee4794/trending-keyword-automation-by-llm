@@ -18,9 +18,9 @@ dish names, venue names, and cuisine types.
 
 | User says | Action |
 |-----------|--------|
-| "run trending pipeline" | Full run |
+| "run trending pipeline" | Full run (all 6 steps) |
 | "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending.json` |
-| "compare trends this week" | Read 7 days, compare |
+| "trend analysis" | Read `runs/trend_analysis.md` |
 
 ## Pipeline Flow
 
@@ -28,7 +28,8 @@ dish names, venue names, and cuisine types.
 Step 1: Fetch    → apify_fetch.sh (15 actors) → normalize_raw.py
 Step 2: Filter   → filter_threshold.py (like>threshold AND share>threshold)
 Step 3: Extract  → Agent reads filtered posts + Google Trends → extracts keywords
-Step 4: Output   → Write daily_trending.json + update runs/latest symlink
+Step 4: Assemble → assemble_output.py → daily_trending.json
+Step 5: Trends   → trend_comparison.py → Agent produces natural-language 14-day analysis
 ```
 
 ## Output Schema
@@ -274,11 +275,64 @@ The assembly script handles:
 - Keyword aggregation with engagement stats
 - Writing `daily_trending.json` + updating `runs/latest` symlink
 
-### Step 5 — Present Summary
+### Step 5 — Trend Comparison (14-day analysis)
 
-Show a quick summary in chat. **Always split into two independent groups** —
-social keywords (ranked by likes/engagement) and Google Trends keywords
-(ranked by search volume). Never mix them in a single ranked list.
+After assembling today's `daily_trending.json`, run the trend comparison
+script to build a keyword timeline, then have the Agent produce a
+natural-language analysis.
+
+```bash
+python3 scripts/trend_comparison.py --days 14 --output runs/trend_summary.json
+```
+
+This reads all available `daily_trending.json` files from the last 14 days,
+builds per-keyword daily stats, and classifies each as new / surging / stable
+/ declining.
+
+#### Trend Analysis Prompt
+
+---
+
+You are analysing Hong Kong F&B keyword trends over the last 14 days.
+Below is a keyword timeline extracted from daily pipeline runs.
+
+## Task
+
+Describe the trends in natural language. No scoring formula — just read
+the data and tell the story.
+
+For each trend category, list the most notable keywords:
+
+1. **🔥 Surging** — keywords with increasing post count + engagement in the
+   second half of the period. What's gaining momentum?
+2. **🆕 New entries** — keywords that appeared for the first time recently.
+   What's fresh?
+3. **📉 Declining** — keywords with dropping engagement. What's fading?
+
+Also note any patterns:
+- Dishes clustering around a cuisine or theme (e.g. multiple ramen dishes surging)
+- A venue appearing with many different dishes (menu expansion signal)
+- Cross-channel heat (keyword appears on both social AND Google Trends)
+
+## Keyword Timeline
+
+{TIMELINE_DATA}
+
+## Output
+
+Write a concise natural-language summary. Group by trend direction.
+Include specific numbers (post counts, likes) for the most notable items.
+Keep it under 300 words. No JSON — just plain text.
+
+---
+
+After receiving the Agent's analysis, write it to `runs/trend_analysis.md`
+and present a summary in chat.
+
+### Step 6 — Present Summary
+
+Show a quick summary in chat. Include both the daily extraction results
+AND the trend analysis highlights.
 
 If a keyword appears on both channels, tag it `🔥🔍` to signal cross-channel heat.
 
@@ -316,9 +370,15 @@ Full data: runs/YYYY-MM-DD/daily_trending.json
 | Malformed JSON from LLM | Retry once with stricter prompt |
 | `APIFY_TOKEN` not set | Abort |
 
-## Reading Trends (14-day comparison)
+## Reading Trends
 
-When user asks to compare trends, Agent reads 7-14 `daily_trending.json` files
-and uses its own judgment to identify: surging keywords (increasing post count +
-engagement), declining keywords, and new entries. No scoring formula needed —
-Agent describes patterns in natural language.
+Trend comparison runs automatically as part of the pipeline (Step 5).
+The script `trend_comparison.py` builds a keyword timeline from the last
+14 days of `daily_trending.json` files, classifies each keyword, and the
+Agent produces a natural-language analysis saved to `runs/trend_analysis.md`.
+
+When user asks to compare trends outside of a pipeline run, Agent reads
+7-14 `daily_trending.json` files and uses its own judgment to identify:
+surging keywords (increasing post count + engagement), declining keywords,
+and new entries. No scoring formula needed — Agent describes patterns in
+natural language.
