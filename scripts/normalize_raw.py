@@ -162,6 +162,7 @@ def _normalise_google_trends(
                     "source_kind": "trending_search",
                     "current_volume": current_volume,
                     "previous_volume": None,
+                    "related_terms": s.get("related_terms", []),
                     "raw_payload": {**s, "geo": geo, "language": language},
                 })
     else:
@@ -174,6 +175,7 @@ def _normalise_google_trends(
                 "source_kind": "trending_search",
                 "current_volume": current_volume,
                 "previous_volume": None,
+                "related_terms": item.get("related_terms", []),
                 "raw_payload": item,
             })
 

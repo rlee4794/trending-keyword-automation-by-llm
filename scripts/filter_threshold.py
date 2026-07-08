@@ -100,6 +100,7 @@ def run(date_str: str) -> None:
                 google_terms.append({
                     "term": r.get("raw_representative", ""),
                     "volume": vol,
+                    "related_terms": r.get("related_terms", []),
                 })
         print(f"Google: {len(google_terms)} terms", file=sys.stderr)
 

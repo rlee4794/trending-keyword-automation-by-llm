@@ -35,8 +35,10 @@ requesting a re-run (e.g. just "run trending pipeline" / "有什麼trends" /
    - 📍 Social 熱門餐廳（按 likes 排序，最多 10 個）
    - 🍽️ 熱門菜系（按 post_count 排序，最多 10 個）
    - 🔍 Google 熱搜（按 volume 排序，最多 10 個，只列 F&B 相關）
-2. **Short background** — for each keyword, include a one-line context from
-   `caption_snippet` or source info. For example:
+2. **Short background** — for each keyword in 🔥 Social 熱門菜式 and 📍 Social 熱門餐廳,
+   include a one-line context from `caption_snippet` or source info.
+   🍽️ 熱門菜系 and 🔍 Google 熱搜 do NOT need background.
+   For example:
    - 梅菜扣肉飯 — 源自 7-11 聯乘貼文，兩日內累積 67K likes
    - 沙嗲牛 — 4 篇貼文提及，來自 #hkfoodie 及 @girlsfoodies
 3. If the user explicitly says "重跑" / "重新 fetch" / "rerun" / "再run多次",
@@ -90,8 +92,8 @@ Step T: Trends  → trend_comparison.py (prepare) → Agent (fuzzy match) →
     }
   ],
   "google_trends": [
-    { "term": "壽司郎", "volume": 85 },
-    { "term": "珍珠奶茶", "volume": 62 }
+    { "term": "壽司郎", "volume": 85, "related_terms": ["壽司郎", "迴轉壽司"] },
+    { "term": "珍珠奶茶", "volume": 62, "related_terms": ["珍珠奶茶", "黑糖珍珠"] }
   ],
   "keywords": [
     {
@@ -338,13 +340,13 @@ If a keyword appears on both channels, tag it `🔥🔍` to signal cross-channel
   • 7-11 (2 posts, 67.5K likes) — 便利商店聯乘新品引發熱潮
   • 夜嚐野 (2 posts, 27.8K likes) — 深水埗新開宵夜檔，串燒為主
 
-🍽️ 熱門菜系（按提及 post 數，Top 10）
-  • 甜品 (20 posts) — 涵蓋港式糖水、日式刨冰、西式蛋糕
-  • 咖啡 (12 posts) — 獨立咖啡店探店潮持續
+🍽️ 熱門菜系（按提及 post 數，Top 10，無需背景）
+  • 甜品 (20 posts)
+  • 咖啡 (12 posts)
 
-🔍 Google 熱搜關鍵詞（按搜尋量，Top 10）
-  • 大家樂冬瓜盅 (200 vol) — 季節限定回歸 🔥🔍
-  • 富臨漁港 (2,000 vol)
+🔍 Google 熱搜關鍵詞（按搜尋量，Top 10，附 related_terms）
+  • 大家樂冬瓜盅 (200 vol) 🔥🔍 — 相關詞：冬瓜盅、大家樂
+  • 富臨漁港 (紅磡店) (2,000 vol) — 相關詞：富临渔港
 
 Full data: runs/YYYY-MM-DD/daily_trending.json
 ```
@@ -355,8 +357,18 @@ For each keyword's background, infer from the associated posts' `caption_snippet
 and `source` fields. Keep it to one short line:
 - **Dishes**: mention the source context (聯乘/新開/限時/傳統) and notable platform
 - **Venues**: mention location/type (連鎖/新開/地區) and what they're known for
-- **Cuisines**: mention what sub-types are trending within it
-- **Google**: if the term also appears in social keywords, tag `🔥🔍`
+- **Cuisines**: NO background needed — just list post_count
+- **Google**: show `related_terms` as a comma-separated list (exclude the term itself).
+  If the term also appears in social keywords, tag `🔥🔍`
+
+#### Google related_terms display rules
+
+Each Google Trends entry now carries a `related_terms` array from the raw data.
+When presenting Google results:
+- Show `related_terms` inline after the volume, e.g. `— 相關詞：燒鵝, 大家樂`
+- Exclude the primary term itself from the display (it's redundant)
+- Deduplicate — if the same related term appears multiple times, show it once
+- If no related_terms or all are duplicates of the primary term, omit the `— 相關詞：` part
 
 ## Edge Cases
 
