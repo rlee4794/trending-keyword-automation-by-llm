@@ -34,15 +34,15 @@
     }
   },
   "threads": {
-    "actor_id": "hAn2r6106dhk7GOxS",
+    "actor_id": "lct1dlYksEDIG9If9",
     "dataset_key": "defaultDatasetId",
     "result_format": "dataset_items",
     "input": {
       "keywords": [],
+      "max_posts": 50,
+      "mode": "search",
       "search_filter": "top",
-      "start_date": "30 days",
-      "end_date": "",
-      "max_posts": 50
+      "start_date": "2 weeks"
     }
   }
 }
