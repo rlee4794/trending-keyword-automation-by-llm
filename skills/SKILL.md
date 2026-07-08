@@ -20,7 +20,7 @@ dish names, venue names, and cuisine types.
 |-----------|--------|
 | "run trending pipeline" | Full run (all 6 steps) |
 | "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending.json` |
-| "trend analysis" | Read `runs/trend_analysis.md` |
+| "trend analysis" | Read `runs/YYYY-MM-DD/daily_trending.json` trend fields |
 
 ## Pipeline Flow
 
@@ -29,7 +29,9 @@ Step 1: Fetch    → apify_fetch.sh (15 actors) → normalize_raw.py
 Step 2: Filter   → filter_threshold.py (like>threshold AND share>threshold)
 Step 3: Extract  → Agent reads filtered posts + Google Trends → extracts keywords
 Step 4: Assemble → assemble_output.py → daily_trending.json
-Step 5: Trends   → trend_comparison.py → Agent produces natural-language 14-day analysis
+Step 5: Trends   → trend_comparison.py (prepare) → Agent (fuzzy match) →
+                   trend_comparison.py (merge) → daily_trending.json enriched
+Step 6: Summary  → Present daily results + new/surging highlights in chat
 ```
 
 ## Output Schema
@@ -275,64 +277,143 @@ The assembly script handles:
 - Keyword aggregation with engagement stats
 - Writing `daily_trending.json` + updating `runs/latest` symlink
 
-### Step 5 — Trend Comparison (14-day analysis)
+### Step 5 — Trend Comparison (7-day snapshot)
 
-After assembling today's `daily_trending.json`, run the trend comparison
-script to build a keyword timeline, then have the Agent produce a
-natural-language analysis.
+Compare today's keywords against 7 days ago. Only two classifications:
+- **new**: keyword did not appear in any of the last 7 days
+- **surging**: keyword existed 7 days ago, but post_count increased ≥50%
+
+#### Step 5a — Prepare snapshots
 
 ```bash
-python3 scripts/trend_comparison.py --days 14 --output runs/trend_summary.json
+python3 scripts/trend_comparison.py --date YYYY-MM-DD --output /tmp/trend_snapshots.json
 ```
 
-This reads all available `daily_trending.json` files from the last 14 days,
-builds per-keyword daily stats, and classifies each as new / surging / stable
-/ declining.
+This reads today's `daily_trending.json`, the 7-days-ago file (if available),
+and all intermediate days, then outputs:
+- `today_keywords`: today's keyword list with stats
+- `prev_keywords`: 7-days-ago keyword list (null if unavailable)
+- `seen_in_period`: exact-match set of all terms from intermediate days
+  (used to exclude false 'new' — a keyword seen on day-3 is NOT new)
 
-#### Trend Analysis Prompt
+#### Step 5b — Agent fuzzy matching
+
+Read `/tmp/trend_snapshots.json`. The Agent does fuzzy matching between
+today's keywords and the previous period keywords, then classifies each.
+
+##### Trend Matching Prompt
 
 ---
 
-You are analysing Hong Kong F&B keyword trends over the last 14 days.
-Below is a keyword timeline extracted from daily pipeline runs.
+You are matching today's F&B trending keywords against 7-days-ago keywords.
+
+## Input
+
+**Today's keywords** (date: {today_date}):
+{today_keywords}
+
+**7-days-ago keywords** (date: {prev_date}):
+{prev_keywords}
+
+**Seen in period** (terms that appeared on ANY of the last 7 days —
+if a today keyword matches one of these but NOT the day-7 snapshot,
+it is NOT 'new'):
+{seen_in_period}
 
 ## Task
 
-Describe the trends in natural language. No scoring formula — just read
-the data and tell the story.
+For each today keyword, determine if it is:
 
-For each trend category, list the most notable keywords:
+1. **"new"** — the keyword does NOT appear in `seen_in_period` AND does NOT
+   have a fuzzy match in `prev_keywords`. This means it's genuinely new
+   in the last 7 days.
 
-1. **🔥 Surging** — keywords with increasing post count + engagement in the
-   second half of the period. What's gaining momentum?
-2. **🆕 New entries** — keywords that appeared for the first time recently.
-   What's fresh?
-3. **📉 Declining** — keywords with dropping engagement. What's fading?
+2. **"surging"** — the keyword has a fuzzy match in `prev_keywords` AND
+   today's `post_count` is ≥ 1.5× the previous post_count.
+   The fuzzy match handles spelling variants: 沙爹牛 ≈ 沙嗲牛,
+   寿司郎 ≈ 壽司郎, Sushiro ≈ 壽司郎.
 
-Also note any patterns:
-- Dishes clustering around a cuisine or theme (e.g. multiple ramen dishes surging)
-- A venue appearing with many different dishes (menu expansion signal)
-- Cross-channel heat (keyword appears on both social AND Google Trends)
+3. **No trend** — omit from output. Keyword is stable, declining, or
+   the match is too uncertain.
 
-## Keyword Timeline
+## Fuzzy matching rules
 
-{TIMELINE_DATA}
+- Same meaning, different script: 寿司郎 ↔ 壽司郎 (SC/TC)
+- Same dish, minor spelling: 沙爹牛 ↔ 沙嗲牛, 珍珠奶茶 ↔ 珍珠奶茶
+- English ↔ Chinese: Sushiro ↔ 壽司郎, McDonald's ↔ 麥當勞
+- Term is a substring of another: 沙嗲牛 ↔ 沙嗲牛肉麵 — these are
+  DIFFERENT. Only match if the core concept is the same.
+- If uncertain, omit — better to miss a match than produce a false one.
 
 ## Output
 
-Write a concise natural-language summary. Group by trend direction.
-Include specific numbers (post counts, likes) for the most notable items.
-Keep it under 300 words. No JSON — just plain text.
+Return ONLY JSON. No markdown, no explanation.
+
+```json
+{
+  "matches": [
+    {
+      "today_term": "沙嗲拼盤",
+      "today_type": "dish",
+      "classification": "surging",
+      "matched_term": "沙爹拼盤",
+      "prev_post_count": 1,
+      "prev_total_likes": 2000
+    },
+    {
+      "today_term": "至尊漢堡",
+      "today_type": "dish",
+      "classification": "new"
+    }
+  ]
+}
+```
+
+Rules:
+- `today_term`, `today_type`: exactly as they appear in today's keyword list
+- `classification`: "new" or "surging" only
+- For "surging": include `matched_term`, `prev_post_count`, `prev_total_likes`
+- For "new": only `today_term`, `today_type`, `classification`
+- Return ONLY the JSON
 
 ---
 
-After receiving the Agent's analysis, write it to `runs/trend_analysis.md`
-and present a summary in chat.
+#### Step 5c — Merge results
+
+After receiving the Agent's JSON, merge trend fields back into today's
+daily_trending.json:
+
+```bash
+python3 scripts/trend_comparison.py --date YYYY-MM-DD --merge /path/to/agent_output.json
+```
+
+This adds a `trend` field to each matched keyword:
+
+```json
+{
+  "term": "沙嗲拼盤",
+  "type": "dish",
+  "post_count": 3,
+  "trend": {
+    "direction": "surging",
+    "matched_term": "沙爹拼盤",
+    "prev_post_count": 1,
+    "prev_total_likes": 2000
+  }
+}
+```
+
+Keywords without a trend signal get no `trend` field.
 
 ### Step 6 — Present Summary
 
-Show a quick summary in chat. Include both the daily extraction results
-AND the trend analysis highlights.
+Show a quick summary in chat. **Always split into two independent groups** —
+social keywords (ranked by likes/engagement) and Google Trends keywords
+(ranked by search volume). Never mix them in a single ranked list.
+
+Highlight trend signals from the `trend` field:
+- 🆕 **New**: first appeared in the last 7 days
+- 🔥 **Surging**: post_count up ≥50% vs 7 days ago
 
 If a keyword appears on both channels, tag it `🔥🔍` to signal cross-channel heat.
 
@@ -368,17 +449,15 @@ Full data: runs/YYYY-MM-DD/daily_trending.json
 | 0 posts pass threshold | Warn, suggest lowering `config/threshold.json` |
 | LLM extraction fails | Retry once. If still failing, write posts without `extracted` field |
 | Malformed JSON from LLM | Retry once with stricter prompt |
-| `APIFY_TOKEN` not set | Abort |
+| 7-days-ago data unavailable | Skip trend comparison, keywords get no `trend` field |
+| Agent fuzzy match fails or returns invalid JSON | Retry once. If still failing, skip trend merge |
 
 ## Reading Trends
 
 Trend comparison runs automatically as part of the pipeline (Step 5).
-The script `trend_comparison.py` builds a keyword timeline from the last
-14 days of `daily_trending.json` files, classifies each keyword, and the
-Agent produces a natural-language analysis saved to `runs/trend_analysis.md`.
+Each keyword in `daily_trending.json` may have a `trend` field with
+direction ("new" or "surging") and 7-day comparison stats.
 
-When user asks to compare trends outside of a pipeline run, Agent reads
-7-14 `daily_trending.json` files and uses its own judgment to identify:
-surging keywords (increasing post count + engagement), declining keywords,
-and new entries. No scoring formula needed — Agent describes patterns in
-natural language.
+When user asks to compare trends outside of a pipeline run, Agent uses
+the `trend` fields from 7-14 `daily_trending.json` files to describe
+patterns in natural language. No scoring formula needed.
