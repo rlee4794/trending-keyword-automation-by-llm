@@ -86,6 +86,25 @@ def _load_seen_urls(run_dir: Path, lookback_days: int = 6) -> set[str]:
     return seen
 
 
+def _normalise_timestamp(ts: Any) -> str | None:
+    """Convert a timestamp to an ISO-8601 UTC string.
+
+    Accepts:
+      - ISO-8601 string (e.g. 2026-07-06T10:08:02+00:00) → returned as-is
+      - Unix epoch (int/float, seconds) → converted to ISO UTC
+      - None / empty → None
+    """
+    if ts is None or ts == "":
+        return None
+    if isinstance(ts, (int, float)):
+        try:
+            return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
+        except (ValueError, OSError):
+            return None
+    # Already a string — assume ISO
+    return str(ts)
+
+
 def _engagement_tier(likes: int, comments: int) -> str:
     score = likes + comments * 2
     if score > 5000:
@@ -196,7 +215,9 @@ def _normalise_instagram_posts(
                 "geo": "HK",
                 "likes": likes,
                 "comments": comments,
-                "taken_at_timestamp": item.get("taken_at_timestamp"),
+                "taken_at_timestamp": _normalise_timestamp(
+                    item.get("taken_at_timestamp") or item.get("taken_at")
+                ),
                 "hashtags": item.get("hashtags", []),
                 "url": item.get("url"),
                 "reshare_count": item.get("reshare_count"),
@@ -231,7 +252,9 @@ def _normalise_instagram_user_posts(
                 "geo": "HK",
                 "likes": likes,
                 "comments": comments,
-                "taken_at_timestamp": item.get("taken_at_timestamp"),
+                "taken_at_timestamp": _normalise_timestamp(
+                    item.get("taken_at_timestamp") or item.get("taken_at")
+                ),
                 "hashtags": item.get("hashtags", []),
                 "url": item.get("url"),
                 "reshare_count": item.get("reshare_count"),
@@ -276,7 +299,7 @@ def _normalise_threads_posts(
                 "comments": replies,
                 "reposts": reposts,
                 "reshare_count": shares,
-                "taken_at_timestamp": item.get("created_at"),
+                "taken_at_timestamp": _normalise_timestamp(item.get("created_at")),
                 "hashtags": item.get("hashtags", []),
                 "url": item.get("post_url", ""),
                 "caption_snippet": text[:500] if text else "",
