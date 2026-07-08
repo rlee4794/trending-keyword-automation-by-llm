@@ -2,7 +2,16 @@
   "google": {
     "actor_id": "nWhM7vTPu16lcwuIg",
     "dataset_key": "defaultDatasetId",
-    "result_format": "dataset_items"
+    "result_format": "dataset_items",
+    "input": {
+      "enableTrendingSearches": true,
+      "fetchRegionalData": false,
+      "proxyConfiguration": { "useApifyProxy": true },
+      "trendingSearchesCategories": ["5"],
+      "trendingSearchesCountry": "HK",
+      "trendingSearchesMaxItems": 30,
+      "trendingSearchesTimeframe": "168"
+    }
   },
   "instagram": {
     "actor_id": "3d0WBo0KbTUrk4z9V",
