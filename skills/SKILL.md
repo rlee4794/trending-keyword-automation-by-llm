@@ -171,13 +171,23 @@ For each post below, extract:
    Include: individual dishes, desserts, drinks, baked goods, specific food items.
 
 2. **Venues** (優先) — restaurant names, cafe names, food venues, food streets,
-   dai pai dong, markets with food significance. Include both chains (壽司郎, 麥當勞,
-   薩莉亞) and notable independents.
+   dai pai dong, markets with food significance. Must be at least 2 characters.
+   Include both chains (壽司郎, 麥當勞, 薩莉亞) and notable independents.
+   A venue is a PROPER NOUN — if it's a common Chinese word that could appear
+   in any sentence (不, 的, 好, 是, 有, 食, 飲, 去, 來, 我, 你, 他, 她, 很,
+   個, 種, 啲, 嘅, 咁, 仲, 未, 冇, 無, 係, 喺, 俾, 畀, 令, 將, 但, 只,
+   已, 更, 最, 都, 就, 也, 會, 要, 可, 又, 或, 與, 及), it is NOT a venue.
 
 3. **Cuisines** (次要) — cuisine types or food categories: 日本菜, 泰國菜, 川菜,
    dim sum, ramen, omakase, 放題, 茶餐廳, 打邊爐, 燒烤.
 
 **DO NOT extract:**
+- Single characters as venues or dishes — minimum 2 characters required.
+  A single Chinese character like 不, 的, 好, 食 is NEVER a restaurant name or dish.
+- Common Chinese function words / adverbs / conjunctions as venues or dishes:
+  不, 的, 了, 是, 在, 有, 和, 都, 就, 也, 會, 要, 可, 好, 食, 飲, 去, 來,
+  我, 你, 他, 她, 很, 個, 種, 啲, 嘅, 咁, 仲, 未, 冇, 無, 係, 喺, 俾, 畀,
+  令, 將, 但, 只, 已, 更, 最, 又, 或, 與, 及
 - Vague/generic terms: 好味, 美食, 必食, 好食, 好西, 香港, foodie, foodporn, yum
 - Standalone locations without food context: 北角, 旺角, 中環, mongkok, causeway bay
 - Non-food activities: 唱K, 行山, 打卡, yoga
@@ -252,83 +262,14 @@ Rules:
 After receiving the JSON, assemble the final output:
 
 ```bash
-python3 -c "
-import json
-from datetime import datetime, timezone, timedelta
-
-HKT = timezone(timedelta(hours=8))
-
-# Load filtered data
-with open('runs/YYYY-MM-DD/filtered/threshold_filtered.json') as f:
-    filtered = json.load(f)
-
-# Load extraction results (paste JSON response here)
-extraction = '''PASTE_JSON_RESPONSE_HERE'''
-ext = json.loads(extraction)
-
-# Merge extraction into posts
-posts = filtered['posts']
-for pe in ext.get('posts', []):
-    idx = pe['index']
-    if idx < len(posts):
-        posts[idx]['extracted'] = {
-            'dishes': pe.get('dishes', []),
-            'venues': pe.get('venues', []),
-            'cuisines': pe.get('cuisines', []),
-        }
-
-# Build keyword aggregates
-for kw in ext.get('keywords', []):
-    indices = kw.get('post_indices', [])
-    total_likes = sum(posts[i]['likes'] for i in indices if i < len(posts))
-    total_comments = sum(posts[i]['comments'] for i in indices if i < len(posts))
-    total_shares = sum(posts[i]['shares'] for i in indices if i < len(posts))
-    platforms = list(set(posts[i]['platform'] for i in indices if i < len(posts)))
-    if not indices:  # Google-only keyword
-        platforms = ['google']
-    sources = list(set(posts[i]['source'] for i in indices if i < len(posts)))
-    kw['post_count'] = len(indices)
-    kw['total_likes'] = total_likes
-    kw['total_comments'] = total_comments
-    kw['total_shares'] = total_shares
-    kw['platforms'] = platforms
-    kw['sources'] = sources
-    # Clean up — remove post_indices from output
-    del kw['post_indices']
-
-# Google Trends: include F&B terms that weren't covered by posts
-google_terms = filtered.get('google_trends', [])
-# (Google terms already handled in keywords by agent)
-
-output = {
-    'schema_version': '1.0',
-    'date': filtered['date'],
-    'generated_at': datetime.now(HKT).strftime('%Y-%m-%dT%H:%M:%S+08:00'),
-    'threshold': filtered['threshold'],
-    'posts': posts,
-    'google_trends': google_terms,
-    'keywords': ext.get('keywords', []),
-}
-
-import os
-run_dir = 'runs/YYYY-MM-DD'
-os.makedirs(run_dir, exist_ok=True)
-with open(f'{run_dir}/daily_trending.json', 'w') as f:
-    json.dump(output, f, ensure_ascii=False, indent=2)
-# Ensure trailing newline
-content = open(f'{run_dir}/daily_trending.json').read()
-if content and not content.endswith('\n'):
-    open(f'{run_dir}/daily_trending.json', 'w').write(content + '\n')
-
-# Update symlink
-if os.path.islink('runs/latest') or os.path.exists('runs/latest'):
-    os.remove('runs/latest')
-os.symlink(f'YYYY-MM-DD', 'runs/latest')
-
-print(f'✅ {len(output[\"keywords\"])} keywords from {len(posts)} posts + {len(google_terms)} Google terms')
-print(f'Output: runs/YYYY-MM-DD/daily_trending.json')
-"
+python3 scripts/assemble_output.py --date YYYY-MM-DD --extraction-file /path/to/extraction.json
 ```
+
+The assembly script handles:
+- Merging extraction results into posts
+- Post-processing guards (stripping single-char / common-word false venues)
+- Keyword aggregation with engagement stats
+- Writing `daily_trending.json` + updating `runs/latest` symlink
 
 ### Step 5 — Present Summary
 
