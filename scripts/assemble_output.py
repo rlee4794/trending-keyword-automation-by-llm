@@ -52,33 +52,89 @@ LOCATION_MARKERS: list[str] = [
     "號地舖", "號地下", "號鋪",
 ]
 
+# Words that often precede a venue name in running text.
+# e.g. "北角串燒店「不」一直都非常人氣" — 串燒店 precedes the venue name.
+VENUE_PRECEDING_WORDS: list[str] = [
+    "餐廳", "食店", "串燒店", "小店", "店", "鋪", "舖",
+    "咖啡店", "茶餐廳", "酒樓", "名店", "大排檔", "冰室",
+    "麵店", "麵檔", "燒味店", "甜品店", "糖水鋪",
+    "居酒屋", "酒吧", "cafe", "bistro", "bar",
+]
+
+# Quotation marks that signal a proper noun in Chinese/English text.
+# "「不」" is almost certainly a restaurant name, not the negation word.
+QUOTE_PAIRS: list[tuple[str, str]] = [
+    ("「", "」"),
+    ("『", "』"),
+    ('"', '"'),
+]
+
 
 def _is_in_location_context(term: str, caption: str) -> bool:
-    """Check if a term appears near a location/address marker in the caption.
+    """Check if a term appears in a venue-name context in the caption.
 
     A single character like '不' could be a real restaurant name
-    (北角錦屏街33A號, 📍不) or a common word (不太記得).
-    This function checks if the term is used in an address/location context.
+    (北角錦屏街33A號, 📍不, 串燒店「不」) or a common word (不太記得).
 
-    Heuristic: the term must appear within 20 characters AFTER a location
-    marker. Real venue usage follows the pattern '📍不，🗺️地址...'
-    where the venue name directly follows the marker. False positives
-    like '捨不得' in a post that also happens to contain '📍' elsewhere
-    are rejected because the term precedes the marker.
+    Three signals are checked:
+    1. Location marker proximity: term within 20 chars after 📍/🗺️/地址 etc.
+    2. Quotation marks: 「不」/『不』/"不" — quoted terms are proper nouns.
+    3. Venue-preceding words: "串燒店「不」" — 串燒店/餐廳/食店 etc.
+       immediately before the quoted or bare term.
     """
     if not term or not caption:
         return False
 
+    # Signal 1: Location marker proximity
     for marker in LOCATION_MARKERS:
         marker_pos = caption.find(marker)
         if marker_pos == -1:
             continue
-        # Check if term appears within 20 chars after the marker
         after_start = marker_pos + len(marker)
         after_end = min(len(caption), after_start + 20)
-        after_text = caption[after_start:after_end]
-        if term in after_text:
+        if term in caption[after_start:after_end]:
             return True
+
+    # Signal 2: Quoted term — 「不」/『不』/"不"
+    for open_q, close_q in QUOTE_PAIRS:
+        # Find pattern: open_q + term + close_q
+        pattern = f"{open_q}{term}{close_q}"
+        if pattern in caption:
+            return True
+        # Also check: open_q + term at end (unclosed quote, common in truncated captions)
+        idx = 0
+        while True:
+            pos = caption.find(open_q, idx)
+            if pos == -1:
+                break
+            after_open = pos + len(open_q)
+            if caption[after_open:after_open + len(term)] == term:
+                # term immediately follows an opening quote
+                return True
+            idx = pos + 1
+
+    # Signal 3: Venue-preceding word before the term
+    # e.g. "串燒店「不」" or "北角串燒店不" (without quotes)
+    for vw in VENUE_PRECEDING_WORDS:
+        # Check: vw + optional quote + term
+        for open_q, _ in QUOTE_PAIRS:
+            combo = f"{vw}{open_q}{term}"
+            if combo in caption:
+                return True
+        # Check: vw + term (bare, without quotes)
+        vw_pos = caption.find(vw)
+        if vw_pos == -1:
+            continue
+        after_vw = vw_pos + len(vw)
+        # Skip any opening quote
+        if after_vw < len(caption) and caption[after_vw] in ('「', '『', '"'):
+            after_vw += 1
+        # Check if term starts right after
+        if caption[after_vw:after_vw + len(term)] == term:
+            # Ensure it's not part of a longer word (e.g. "店不大")
+            after_term = after_vw + len(term)
+            if after_term >= len(caption) or not caption[after_term].isalpha():
+                return True
 
     return False
 
