@@ -39,7 +39,7 @@
     "result_format": "dataset_items",
     "input": {
       "keywords": [],
-      "max_posts": 50,
+      "max_posts": 75,
       "mode": "search",
       "search_filter": "top",
       "start_date": "2 weeks"

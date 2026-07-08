@@ -184,6 +184,14 @@ For each post below, extract:
    個, 種, 啲, 嘅, 咁, 仲, 未, 冇, 無, 係, 喺, 俾, 畀, 令, 將, 但, 只,
    已, 更, 最, 都, 就, 也, 會, 要, 可, 又, 或, 與, 及), it is NOT a venue.
 
+   **Extracting venues from lists and markers:**
+   - Numbered/bullet lists of restaurants → extract each as a venue.
+     Example: "1. 牛奶冰室 2. 蜜雪冰城 3. 百分百餐廳" → venues: [牛奶冰室, 蜜雪冰城, 百分百餐廳]
+   - 📍 followed by a name → extract as venue.
+     Example: "📍Picanhas' 中環伊利近街" → venues: [Picanhas']
+   - Restaurant name + food description → extract the name.
+     Example: "紅磡炒得喜 超大盆花甲蒸蛋！！" → venues: [紅磡炒得喜]
+
 3. **Cuisines** (次要) — cuisine types or food categories: 日本菜, 泰國菜, 川菜,
    dim sum, ramen, omakase, 放題, 茶餐廳, 打邊爐, 燒烤.
 
@@ -210,6 +218,15 @@ For each post below, extract:
 ## Posts
 
 Format: `[N] platform | source | likes ❤️ | comments 💬 | shares 🔄`
+
+**Threads-specific notes:** Threads posts are shorter and more conversational
+than Instagram. They rarely use hashtags. Pay extra attention to:
+- Numbered/bullet lists of restaurants or dishes (e.g. "1. 牛奶冰室 2. 蜜雪冰城")
+- Venue names after 📍 markers (e.g. "📍Picanhas'")
+- Standalone restaurant names followed by food descriptions
+  (e.g. "紅磡炒得喜 超大盆花甲蒸蛋！！")
+- Dish names in short declarative sentences
+  (e.g. "推薦一間中環附近嘅牛排午餐")
 
 {CAPTIONS}
 
