@@ -183,7 +183,10 @@ For each post below, extract:
 
 **DO NOT extract:**
 - Single characters as venues or dishes — minimum 2 characters required.
-  A single Chinese character like 不, 的, 好, 食 is NEVER a restaurant name or dish.
+  A single Chinese character is almost never a restaurant name or dish.
+  The rare exceptions (like the restaurant '不' at 北角錦屏街) appear
+  ONLY in location/address contexts (📍不, 🗺️ address). If a single
+  character appears mid-sentence as a common word, do NOT extract it.
 - Common Chinese function words / adverbs / conjunctions as venues or dishes:
   不, 的, 了, 是, 在, 有, 和, 都, 就, 也, 會, 要, 可, 好, 食, 飲, 去, 來,
   我, 你, 他, 她, 很, 個, 種, 啲, 嘅, 咁, 仲, 未, 冇, 無, 係, 喺, 俾, 畀,

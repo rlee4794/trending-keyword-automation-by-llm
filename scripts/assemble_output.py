@@ -10,8 +10,8 @@ Writes:
   runs/latest → symlink to {date}
 
 Includes post-processing guards to catch common LLM extraction errors:
-  - Single-character venue/dish names
   - Common Chinese function words misidentified as venues/dishes
+    (unless the term appears in a location context: 📍, 🗺️, 地址, etc.)
 
 Usage:
   python3 scripts/assemble_output.py --date 2026-07-07 --extraction-file /tmp/ext.json
@@ -29,9 +29,14 @@ from pathlib import Path
 
 HKT = timezone(timedelta(hours=8))
 
-# Common Chinese characters that are NEVER venue or dish names.
+# Common Chinese characters that are almost never venue or dish names.
 # These are function words, adverbs, conjunctions, pronouns, and
 # generic verbs that can appear in any sentence.
+#
+# Exception: a term in this set may still be a legitimate venue/dish
+# if it appears in a location context in the caption (e.g. "📍不" for
+# the restaurant named 不 at 北角錦屏街33A號). The guard checks context
+# before dropping.
 COMMON_CHARS: set[str] = {
     "不", "的", "了", "是", "在", "有", "和", "都", "就", "也",
     "會", "要", "可", "好", "食", "飲", "去", "來", "我", "你",
@@ -40,9 +45,51 @@ COMMON_CHARS: set[str] = {
     "已", "更", "最", "又", "或", "與", "及",
 }
 
+# Location/address markers that indicate a term is being used as a
+# venue name rather than a common word.
+LOCATION_MARKERS: list[str] = [
+    "📍", "🗺️", "地址", "位置", "地舖", "地下",
+    "號地舖", "號地下", "號鋪",
+]
+
+
+def _is_in_location_context(term: str, caption: str) -> bool:
+    """Check if a term appears near a location/address marker in the caption.
+
+    A single character like '不' could be a real restaurant name
+    (北角錦屏街33A號, 📍不) or a common word (不太記得).
+    This function checks if the term is used in an address/location context.
+
+    Heuristic: the term must appear within 20 characters AFTER a location
+    marker. Real venue usage follows the pattern '📍不，🗺️地址...'
+    where the venue name directly follows the marker. False positives
+    like '捨不得' in a post that also happens to contain '📍' elsewhere
+    are rejected because the term precedes the marker.
+    """
+    if not term or not caption:
+        return False
+
+    for marker in LOCATION_MARKERS:
+        marker_pos = caption.find(marker)
+        if marker_pos == -1:
+            continue
+        # Check if term appears within 20 chars after the marker
+        after_start = marker_pos + len(marker)
+        after_end = min(len(caption), after_start + 20)
+        after_text = caption[after_start:after_end]
+        if term in after_text:
+            return True
+
+    return False
+
 
 def _guard_extraction(posts: list[dict]) -> tuple[int, int]:
-    """Strip obviously invalid extractions from posts. Returns (venue_dropped, dish_dropped)."""
+    """Strip invalid extractions from posts.
+
+    A term in COMMON_CHARS is dropped UNLESS it appears in a location
+    context in the caption (e.g. '📍不' for a real restaurant).
+    Returns (venue_dropped, dish_dropped).
+    """
     venue_dropped = 0
     dish_dropped = 0
 
@@ -51,67 +98,78 @@ def _guard_extraction(posts: list[dict]) -> tuple[int, int]:
         if not ext:
             continue
 
+        caption = p.get("caption_snippet", "")
+
         venues = ext.get("venues", [])
         if venues:
-            filtered = [
-                v for v in venues
-                if len(v) >= 2 and v not in COMMON_CHARS
-            ]
-            dropped = len(venues) - len(filtered)
-            if dropped:
-                venue_dropped += dropped
-                for v in venues:
-                    if v not in filtered:
+            filtered = []
+            for v in venues:
+                if v in COMMON_CHARS:
+                    if _is_in_location_context(v, caption):
+                        # Term appears near a location marker — could be a
+                        # real restaurant name (e.g. '📍不')
+                        filtered.append(v)
+                    else:
+                        venue_dropped += 1
                         print(
                             f"⚠️  GUARD: dropped venue='{v}' from post "
-                            f"(caption: {p.get('caption_snippet', '')[:80]}...)",
+                            f"(caption: {caption[:80]}...)",
                             file=sys.stderr,
                         )
+                else:
+                    filtered.append(v)
             ext["venues"] = filtered
 
         dishes = ext.get("dishes", [])
         if dishes:
-            filtered = [
-                d for d in dishes
-                if len(d) >= 2 and d not in COMMON_CHARS
-            ]
-            dropped = len(dishes) - len(filtered)
-            if dropped:
-                dish_dropped += dropped
-                for d in dishes:
-                    if d not in filtered:
+            filtered = []
+            for d in dishes:
+                if d in COMMON_CHARS:
+                    if _is_in_location_context(d, caption):
+                        filtered.append(d)
+                    else:
+                        dish_dropped += 1
                         print(
                             f"⚠️  GUARD: dropped dish='{d}' from post "
-                            f"(caption: {p.get('caption_snippet', '')[:80]}...)",
+                            f"(caption: {caption[:80]}...)",
                             file=sys.stderr,
                         )
+                else:
+                    filtered.append(d)
             ext["dishes"] = filtered
 
     return venue_dropped, dish_dropped
 
 
-def _guard_keywords(keywords: list[dict]) -> tuple[list[dict], int]:
-    """Remove keywords with obviously invalid terms.
+def _guard_keywords(keywords: list[dict], posts: list[dict]) -> tuple[list[dict], int]:
+    """Remove keywords with invalid terms.
+
+    A keyword in COMMON_CHARS is dropped UNLESS it appears in a
+    location context in at least one associated post's caption.
     Returns (filtered_keywords, count_dropped).
     """
     dropped = 0
     valid = []
     for kw in keywords:
         term = kw.get("term", "")
-        if len(term) <= 1:
-            print(
-                f"⚠️  GUARD: dropping single-char keyword '{term}' (type={kw.get('type')})",
-                file=sys.stderr,
-            )
-            dropped += 1
-            continue
         if term in COMMON_CHARS:
-            print(
-                f"⚠️  GUARD: dropping common-char keyword '{term}' (type={kw.get('type')})",
-                file=sys.stderr,
-            )
-            dropped += 1
-            continue
+            # Check if this term appears in a location context in any
+            # associated post's caption
+            in_context = False
+            for i in kw.get("post_indices", []):
+                if i < len(posts):
+                    caption = posts[i].get("caption_snippet", "")
+                    if _is_in_location_context(term, caption):
+                        in_context = True
+                        break
+            if not in_context:
+                print(
+                    f"⚠️  GUARD: dropping common-char keyword '{term}' "
+                    f"(type={kw.get('type')}, not in location context)",
+                    file=sys.stderr,
+                )
+                dropped += 1
+                continue
         valid.append(kw)
     return valid, dropped
 
@@ -149,8 +207,38 @@ def run(date_str: str, extraction: dict) -> None:
             file=sys.stderr,
         )
 
-    # ── Step 3: Build keyword aggregates ────────────────────────────
+    # ── Step 2b: Rebuild keyword post_indices from cleaned posts ───
+    # After post-level guard removed invalid venues/dishes, the
+    # keyword post_indices may be stale. Rebuild them by checking
+    # which posts still contain each keyword term in their extracted fields.
+    for kw in extraction.get("keywords", []):
+        term = kw["term"]
+        kw_type = kw.get("type", "")
+        new_indices = []
+        for i, p in enumerate(posts):
+            ext = p.get("extracted", {})
+            field = {"dish": "dishes", "venue": "venues", "cuisine": "cuisines"}.get(kw_type, "")
+            if field and term in ext.get(field, []):
+                new_indices.append(i)
+        old_count = len(kw.get("post_indices", []))
+        if old_count > 0 and len(new_indices) < old_count:
+            print(
+                f"🔧  REBUILD: keyword '{term}' post_indices "
+                f"{old_count} → {len(new_indices)} (post-level guard cleaned some)",
+                file=sys.stderr,
+            )
+        kw["post_indices"] = new_indices
+
+    # ── Step 3: Guard keywords (needs post_indices, must run BEFORE build) ─
     keywords = extraction.get("keywords", [])
+    keywords, kw_dropped = _guard_keywords(keywords, posts)
+    if kw_dropped:
+        print(
+            f"🛡️  GUARD: dropped {kw_dropped} invalid keyword(s)",
+            file=sys.stderr,
+        )
+
+    # ── Step 4: Build keyword aggregates ────────────────────────────
     for kw in keywords:
         indices = kw.pop("post_indices", [])
         kw["post_count"] = len(indices)
@@ -182,14 +270,6 @@ def run(date_str: str, extraction: dict) -> None:
         kw["total_shares"] = total_shares
         kw["platforms"] = platforms
         kw["sources"] = sources
-
-    # ── Step 4: Guard keywords ──────────────────────────────────────
-    keywords, kw_dropped = _guard_keywords(keywords)
-    if kw_dropped:
-        print(
-            f"🛡️  GUARD: dropped {kw_dropped} invalid keyword(s)",
-            file=sys.stderr,
-        )
 
     # ── Step 5: Assemble output ─────────────────────────────────────
     google_terms = filtered.get("google_trends", [])
