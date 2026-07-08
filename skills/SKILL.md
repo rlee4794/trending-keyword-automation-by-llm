@@ -9,10 +9,13 @@ description: >
 
 # HK F&B Trending Keyword Pipeline
 
-Daily trending keyword pipeline for Hong Kong F&B.
-Fetches Google Trends + Instagram + Threads data via Apify,
+Daily trending keyword pipeline for Hong Kong + Taiwan F&B.
+Fetches Google Trends + Instagram (HK hashtags, HK users, TW users) + Threads data via Apify,
 filters to high-engagement posts, then Agent extracts specific
 dish names, venue names, and cuisine types.
+
+Taiwan coverage: Instagram user scraper only (ig_tw_user_*), no Google Trends or Threads.
+TW posts are tagged with `"geo": "TW"` and merged into the same instagram_raw.json.
 
 ## Quick Reference
 
@@ -75,8 +78,9 @@ Step T: Trends  → trend_comparison.py (prepare) → Agent (fuzzy match) →
   "posts": [
     {
       "platform": "instagram",
-      "source": "#hkfoodie",
-      "source_kind": "hashtag",
+      "source": "@girlsfoodies",
+      "source_kind": "user_post",
+      "geo": "HK",
       "url": "https://www.instagram.com/reel/...",
       "likes": 3200,
       "comments": 85,
@@ -88,6 +92,24 @@ Step T: Trends  → trend_comparison.py (prepare) → Agent (fuzzy match) →
         "dishes": ["沙嗲拼盤", "燒蠔"],
         "venues": ["北角串燒店"],
         "cuisines": []
+      }
+    },
+    {
+      "platform": "instagram",
+      "source": "@foodie_nana_",
+      "source_kind": "user_post",
+      "geo": "TW",
+      "url": "https://www.instagram.com/p/...",
+      "likes": 1500,
+      "comments": 45,
+      "shares": 600,
+      "taken_at": "2026-07-06T20:15:00+08:00",
+      "caption_snippet": "台北東區新開嘅珍珠奶茶火鍋真係要試...",
+      "hashtags": ["台北美食", "珍珠奶茶", "火鍋"],
+      "extracted": {
+        "dishes": ["珍珠奶茶火鍋"],
+        "venues": ["台北東區"],
+        "cuisines": ["火鍋"]
       }
     }
   ],
@@ -151,7 +173,10 @@ lower thresholds. Start conservative and widen if needed.
 
 ### Step 1 — Fetch
 
-Same as before: 15 parallel Apify actors, then normalize:
+Fetch data from Apify actors. Two regions are supported:
+
+**Hong Kong:** 15 parallel Apify actors (1 Google + 4 IG hashtags + 10 IG users).
+**Taiwan:** Instagram user scraper only (ig_tw_user_*), no Google Trends or Threads.
 
 ```bash
 # Determine date (default: yesterday)
@@ -159,7 +184,11 @@ TARGET_DATE=$(date -d "yesterday" +%Y-%m-%d)
 RUN_DIR="runs/${TARGET_DATE}"
 mkdir -p "${RUN_DIR}/raw/_apify"
 
-# Read configs + run 15 actors in parallel (see scripts/apify_fetch.sh)
+# HK: Read configs + run 15 actors in parallel (see scripts/apify_fetch.sh)
+# TW: Run Instagram user scraper for each user in instagram_users_taiwan
+# Output filenames:
+#   HK users: ig_user_<username>_apify_raw.json
+#   TW users: ig_tw_user_<username>_apify_raw.json
 # ... (same as old Step 1) ...
 
 wait

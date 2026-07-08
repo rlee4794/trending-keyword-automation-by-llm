@@ -232,12 +232,16 @@ def _normalise_instagram_posts(
 def _normalise_instagram_user_posts(
     raw_items: list[dict[str, Any]],
     username: str,
+    geo: str = "HK",
 ) -> list[dict[str, Any]]:
     """Convert Instagram user-posts scraper output into pipeline-normalised records.
 
     The user-posts scraper (queenlike_xystos/instagram-posts-reels-scraper---no-cookies)
     returns posts from a specific user's feed. Each post is treated as a unique signal
     from a curated foodie source (source_kind = "user_post").
+
+    Args:
+        geo: Geo tag for the source ("HK" for Hong Kong, "TW" for Taiwan).
     """
     records: list[dict[str, Any]] = []
     for item in raw_items:
@@ -251,7 +255,7 @@ def _normalise_instagram_user_posts(
             "previous_volume": None,
             "raw_payload": {
                 "engagement_hint": _engagement_tier(likes, comments),
-                "geo": "HK",
+                "geo": geo,
                 "likes": likes,
                 "comments": comments,
                 "taken_at_timestamp": _normalise_timestamp(
@@ -392,7 +396,8 @@ def main() -> None:
     # --- Instagram (merge all hashtag + user-post files, with cross-day dedup + age filter) ---
     ig_hashtag_files = sorted(glob(str(apify_dir / "ig_*_apify_raw.json")))
     ig_user_files = sorted(glob(str(apify_dir / "ig_user_*_apify_raw.json")))
-    if ig_hashtag_files or ig_user_files:
+    ig_tw_user_files = sorted(glob(str(apify_dir / "ig_tw_user_*_apify_raw.json")))
+    if ig_hashtag_files or ig_user_files or ig_tw_user_files:
         # Compute age cutoff (if max_age_days > 0)
         age_cutoff = None
         if max_age_days > 0:
@@ -433,7 +438,7 @@ def main() -> None:
                     continue
                 all_records.append(rec)
 
-        # Process user-post files
+        # Process user-post files (Hong Kong)
         for ig_file in ig_user_files:
             with open(ig_file, encoding="utf-8") as f:
                 ig_raw_items = json.load(f)
@@ -442,7 +447,7 @@ def main() -> None:
             # Extract username from filename: ig_user_<username>_apify_raw.json
             stem = Path(ig_file).stem  # ig_user_girlsfoodies_apify_raw
             username = stem.replace("ig_user_", "").replace("_apify_raw", "")
-            records = _normalise_instagram_user_posts(ig_raw_items, username)
+            records = _normalise_instagram_user_posts(ig_raw_items, username, geo="HK")
             for rec in records:
                 if age_cutoff is not None:
                     taken_at = _parse_timestamp(
@@ -456,6 +461,32 @@ def main() -> None:
                     dedup_skipped += 1
                     continue
                 all_records.append(rec)
+
+        # Process Taiwan user-post files (ig_tw_user_<username>_apify_raw.json)
+        tw_user_count = 0
+        for ig_file in ig_tw_user_files:
+            with open(ig_file, encoding="utf-8") as f:
+                ig_raw_items = json.load(f)
+            if not isinstance(ig_raw_items, list):
+                ig_raw_items = []
+            # Extract username from filename: ig_tw_user_<username>_apify_raw.json
+            stem = Path(ig_file).stem  # ig_tw_user_foodie_nana__apify_raw
+            username = stem.replace("ig_tw_user_", "").replace("_apify_raw", "")
+            records = _normalise_instagram_user_posts(ig_raw_items, username, geo="TW")
+            for rec in records:
+                if age_cutoff is not None:
+                    taken_at = _parse_timestamp(
+                        (rec.get("raw_payload") or {}).get("taken_at_timestamp")
+                    )
+                    if _is_too_old(taken_at, age_cutoff):
+                        age_skipped += 1
+                        continue
+                url = (rec.get("raw_payload") or {}).get("url", "")
+                if url and url in seen_urls:
+                    dedup_skipped += 1
+                    continue
+                all_records.append(rec)
+                tw_user_count += 1
 
         total_before = len(all_records) + dedup_skipped + age_skipped
 
@@ -492,7 +523,8 @@ def main() -> None:
             json.dumps(instagram_output, ensure_ascii=False, indent=2), encoding="utf-8"
         )
         age_msg = f", {age_skipped} age-skipped" if age_skipped > 0 else ""
-        print(f"instagram: {len(all_records)} records kept, {dedup_skipped} dedup-skipped{age_msg} (from {total_before} total)")
+        tw_msg = f", {tw_user_count} from TW users" if tw_user_count > 0 else ""
+        print(f"instagram: {len(all_records)} records kept, {dedup_skipped} dedup-skipped{age_msg}{tw_msg} (from {total_before} total)")
     else:
         print("instagram: SKIPPED (no _apify data)")
 
