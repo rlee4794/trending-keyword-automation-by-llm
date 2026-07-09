@@ -104,6 +104,24 @@ def run(date_str: str) -> None:
                 })
         print(f"Google: {len(google_terms)} terms", file=sys.stderr)
 
+    # ── Google Trends Taiwan ─────────────────────────────────────────
+    google_tw_path = raw_dir / "google_tw_raw.json"
+    google_tw_terms = []
+
+    if google_tw_path.exists():
+        with google_tw_path.open() as f:
+            google_tw_data = json.load(f)
+        min_vol = thresholds.get("google", {}).get("min_volume", 0)
+        for r in google_tw_data.get("records", []):
+            vol = r.get("current_volume", 0) or 0
+            if vol >= min_vol:
+                google_tw_terms.append({
+                    "term": r.get("raw_representative", ""),
+                    "volume": vol,
+                    "related_terms": r.get("related_terms", []),
+                })
+        print(f"Google TW: {len(google_tw_terms)} terms", file=sys.stderr)
+
     # ── Assemble filtered output ────────────────────────────────────
     posts = []
     for r in ig_posts:
@@ -147,11 +165,13 @@ def run(date_str: str) -> None:
         },
         "posts": posts,
         "google_trends": google_terms,
+        "google_tw_trends": google_tw_terms,
         "_stats": {
             "instagram_total": ig_total,
             "instagram_passed": len(ig_posts),
             "threads_total": threads_total,
             "threads_passed": len(threads_posts),
+            "google_tw_total": len(google_tw_terms),
         },
     }
 
@@ -164,7 +184,7 @@ def run(date_str: str) -> None:
         out_path.write_text(content + "\n")
 
     total_posts = len(posts)
-    print(f"Output: {total_posts} posts + {len(google_terms)} Google terms → {out_path}",
+    print(f"Output: {total_posts} posts + {len(google_terms)} Google terms + {len(google_tw_terms)} Google TW terms → {out_path}",
           file=sys.stderr)
 
 

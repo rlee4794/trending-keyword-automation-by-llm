@@ -367,6 +367,7 @@ def main() -> None:
     with config_path.open(encoding="utf-8") as f:
         config = json.load(f)
     broad_seed_group = config.get("broad_seeds", {}).get("google", ["香港美食", "hk food"])
+    broad_seed_group_tw = config.get("broad_seeds", {}).get("google_taiwan", ["台灣美食", "台北美食"])
 
     # Compute windows
     windows = _compute_windows(target_date)
@@ -392,6 +393,28 @@ def main() -> None:
         print(f"google: {len(google_output['records'])} records")
     else:
         print("google: SKIPPED (no _apify data)")
+
+    # --- Google Trends Taiwan ---
+    google_tw_apify_path = apify_dir / "google_tw_apify_raw.json"
+    if google_tw_apify_path.exists() and google_tw_apify_path.stat().st_size > 0:
+        with google_tw_apify_path.open(encoding="utf-8") as f:
+            google_tw_raw_items = json.load(f)
+        if not isinstance(google_tw_raw_items, list):
+            google_tw_raw_items = []
+        google_tw_output = _normalise_google_trends(google_tw_raw_items, broad_seed_group_tw, windows)
+        # Tag with TW geo
+        for rec in google_tw_output["records"]:
+            rp = rec.get("raw_payload", {})
+            rp["geo"] = "TW"
+            rec["raw_payload"] = rp
+        google_tw_out_path = run_dir / "raw" / "google_tw_raw.json"
+        google_tw_out_path.parent.mkdir(parents=True, exist_ok=True)
+        google_tw_out_path.write_text(
+            json.dumps(google_tw_output, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+        print(f"google_tw: {len(google_tw_output['records'])} records")
+    else:
+        print("google_tw: SKIPPED (no _apify data)")
 
     # --- Instagram (merge all hashtag + user-post files, with cross-day dedup + age filter) ---
     ig_hashtag_files = sorted(glob(str(apify_dir / "ig_*_apify_raw.json")))

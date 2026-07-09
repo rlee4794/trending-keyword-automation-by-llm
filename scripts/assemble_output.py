@@ -329,6 +329,7 @@ def run(date_str: str, extraction: dict) -> None:
 
     # ── Step 5: Assemble output ─────────────────────────────────────
     google_terms = filtered.get("google_trends", [])
+    google_tw_terms = filtered.get("google_tw_trends", [])
 
     output = {
         "schema_version": "1.0",
@@ -337,6 +338,7 @@ def run(date_str: str, extraction: dict) -> None:
         "threshold": filtered["threshold"],
         "posts": posts,
         "google_trends": google_terms,
+        "google_tw_trends": google_tw_terms,
         "keywords": keywords,
     }
 
@@ -357,7 +359,7 @@ def run(date_str: str, extraction: dict) -> None:
 
     print(
         f"✅ {len(keywords)} keywords from {len(posts)} posts "
-        f"+ {len(google_terms)} Google terms",
+        f"+ {len(google_terms)} Google terms + {len(google_tw_terms)} Google TW terms",
         file=sys.stderr,
     )
     print(f"Output: {out_path}", file=sys.stderr)

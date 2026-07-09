@@ -14,8 +14,10 @@ Fetches Google Trends + Instagram (HK hashtags, HK users, TW users) + Threads da
 filters to high-engagement posts, then Agent extracts specific
 dish names, venue names, and cuisine types.
 
-Taiwan coverage: Instagram user scraper only (ig_tw_user_*), no Google Trends or Threads.
+Taiwan coverage: Instagram user scraper (ig_tw_user_*) + Google Trends (google_tw).
 TW posts are tagged with `"geo": "TW"` and merged into the same instagram_raw.json.
+Google TW data goes to `google_tw_raw.json` → `google_tw_trends` in daily_trending.json.
+No Threads for Taiwan.
 
 ## Quick Reference
 
@@ -176,7 +178,7 @@ lower thresholds. Start conservative and widen if needed.
 Fetch data from Apify actors. Two regions are supported:
 
 **Hong Kong:** 15 parallel Apify actors (1 Google + 4 IG hashtags + 10 IG users).
-**Taiwan:** Instagram user scraper only (ig_tw_user_*), no Google Trends or Threads.
+**Taiwan:** Instagram user scraper + Google Trends. No Threads.
 
 ```bash
 # Determine date (default: yesterday)
