@@ -23,9 +23,27 @@ No Threads for Taiwan.
 
 | User says | Action |
 |-----------|--------|
-| "run trending pipeline" | Full run (Steps 1-4 + Summary) |
+| "run trending pipeline" / "行trending pipeline" | Full run — **HK only** (Steps 1-4 + Summary) |
+| "run TW pipeline" / "行台灣pipeline" / "行TW" | Full run — **Taiwan only** (IG users + Google Trends TW) |
 | "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending.json` → present Top 10 by category with background |
-| "trend analysis" / "compare trends" | Run Step T (7-day snapshot comparison, on-demand) |
+| "trend analysis" / "compare trends" / "變動" / "走勢" | Run **Step T** (7-day snapshot comparison, on-demand) |
+
+### ⚠️ Region selector rule
+
+When the user says "run trending pipeline" **without** specifying a region,
+**default to HK only**. Do NOT run Taiwan unless the user explicitly says
+"TW" / "台灣" / "Taiwan" / "台北" in the same request.
+
+When the user specifies TW, run **Taiwan only** (skip HK Google/IG hashtags/Threads).
+
+### ⚠️ Step T (trend analysis) is on-demand only
+
+Step T (trend comparison / 變動分析) is **NOT part of the daily pipeline**.
+Only run it when the user explicitly asks for:
+- "trend analysis" / "compare trends" / "走勢" / "變動" / "compared to last week"
+- Any phrase that implies comparing today vs historical data
+
+Do NOT run Step T automatically after a regular pipeline run.
 
 ### ⚠️ Already-run rule
 
