@@ -28,6 +28,17 @@ No Threads for Taiwan.
 | "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending_HK.json or daily_trending_TW.json` → present Top 10 by category with background |
 | "trend analysis" / "compare trends" / "變動" / "走勢" | Run **Step T** (7-day snapshot comparison, on-demand) |
 
+### ⚠️ Output format rule
+
+All summary/analysis presentations in chat **must use markdown tables**,
+not bullet lists. This applies to:
+- Step 5 daily summary (each category as a table with appropriate columns)
+- Step T trend comparison output
+- "show trends for YYYY-MM-DD" readout
+- Any multi-row data display (top N lists, comparisons, rankings)
+
+Exception: single-value answers and short explanations can remain as prose.
+
 ### ⚠️ Region selector rule
 
 When the user says "run trending pipeline" **without** specifying a region,
@@ -356,26 +367,39 @@ social dishes, social venues, cuisines, and Google Trends keywords. Never mix th
 If a keyword appears on both channels, tag it `🔥🔍` to signal cross-channel heat.
 
 **Format: Top 10 per category, with short background for each item.**
+**Use markdown tables, not bullet lists.**
 
 ```
 ✅ Pipeline done. {len(posts)} posts passed threshold → {len(keywords)} keywords extracted
 
 🔥 Social 熱門菜式（按互動熱度，Top 10）
-  • 梅菜扣肉飯 (2 posts, 67.5K likes) — 源自 7-11 聯乘貼文，兩日內爆發
-  • 沙嗲牛 (4 posts, 40.1K likes) — #hkfoodie 及 @girlsfoodies 多位 foodie 提及
-  • 蝦多士 (4 posts, 9.8K likes) — 港式茶記經典小食，Threads 上熱議
+
+| 關鍵詞 | Posts | Likes | 背景 |
+|--------|-------|-------|------|
+| 梅菜扣肉飯 | 2 | 67.5K | 源自 7-11 聯乘貼文，兩日內爆發 |
+| 沙嗲牛 | 4 | 40.1K | #hkfoodie 及 @girlsfoodies 多位 foodie 提及 |
+| 蝦多士 | 4 | 9.8K | 港式茶記經典小食，Threads 上熱議 |
 
 📍 Social 熱門餐廳（按互動熱度，Top 10）
-  • 7-11 (2 posts, 67.5K likes) — 便利商店聯乘新品引發熱潮
-  • 夜嚐野 (2 posts, 27.8K likes) — 深水埗新開宵夜檔，串燒為主
+
+| 餐廳 | Posts | Likes | 背景 |
+|------|-------|-------|------|
+| 7-11 | 2 | 67.5K | 便利商店聯乘新品引發熱潮 |
+| 夜嚐野 | 2 | 27.8K | 深水埗新開宵夜檔，串燒為主 |
 
 🍽️ 熱門菜系（按提及 post 數，Top 10，無需背景）
-  • 甜品 (20 posts)
-  • 咖啡 (12 posts)
 
-🔍 Google 熱搜關鍵詞（按搜尋量，Top 10，附 related_terms）
-  • 大家樂冬瓜盅 (200 vol) 🔥🔍 — 相關詞：冬瓜盅、大家樂
-  • 富臨漁港 (紅磡店) (2,000 vol) — 相關詞：富临渔港
+| 菜系 | Posts |
+|------|-------|
+| 甜品 | 20 |
+| 咖啡 | 12 |
+
+🔍 Google 熱搜關鍵詞（按搜尋量，Top 10）
+
+| 關鍵詞 | Volume | 趨勢 | 相關詞 |
+|--------|--------|------|--------|
+| 大家樂冬瓜盅 | 200 | 🔥🔍 | 冬瓜盅、大家樂 |
+| 富臨漁港 | 2,000 | — | 富临渔港 |
 
 Full data: runs/YYYY-MM-DD/daily_trending_HK.json
 ```
