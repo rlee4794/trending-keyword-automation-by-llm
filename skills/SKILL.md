@@ -23,8 +23,8 @@ No Threads for Taiwan.
 
 | User says | Action |
 |-----------|--------|
-| "run trending pipeline" / "行trending pipeline" | Full run — **HK only** (Steps 1-4 + Summary) |
-| "run TW pipeline" / "行台灣pipeline" / "行TW" | Full run — **Taiwan only** (IG users + Google Trends TW) |
+| "run trending pipeline" / "行trending pipeline" | Full run — **HK only, defaults to yesterday** (Steps 1-4 + Summary) |
+| "run TW pipeline" / "行台灣pipeline" / "行TW" | Full run — **Taiwan only, defaults to yesterday** (IG users + Google Trends TW) |
 | "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending_HK.json or daily_trending_TW.json` → present Top 10 by category with background |
 | "trend analysis" / "compare trends" / "變動" / "走勢" | Run **Step T** (7-day snapshot comparison, on-demand) |
 
@@ -196,6 +196,8 @@ to respect Apify's 32-actor concurrent limit. Default max-concurrent is 30.
 **Taiwan:** 57 actors (1 Google + 56 IG users)
 
 ```bash
+**⚠️ Always use yesterday's date (`date -d "yesterday"`) unless the user explicitly specifies a different date.**
+
 # Determine date (default: yesterday)
 TARGET_DATE=$(date -d "yesterday" +%Y-%m-%d)
 
@@ -432,6 +434,7 @@ When presenting Google results:
 | Malformed JSON from LLM | Retry once with stricter prompt |
 | 7-days-ago data unavailable | Skip trend comparison, keywords get no `trend` field |
 | Agent fuzzy match fails or returns invalid JSON | Retry once. If still failing, skip trend merge |
+| Agent uses today's date by mistake | Re-run with yesterday. SKILL.md defaults to `date -d "yesterday"` |
 
 ## Reading Trends
 
