@@ -70,7 +70,7 @@ requesting a re-run (e.g. just "run trending pipeline" / "有什麼trends" /
 ## Pipeline Flow
 
 ```
-Step 1: Fetch    → apify_fetch.sh (15 actors) → normalize_raw.py
+Step 1: Fetch    → run_fetch.sh (xargs -P 30) → normalize_raw.py
 Step 2: Filter   → filter_threshold.py (like>threshold AND share>threshold)
 Step 3: Extract  → Agent reads filtered posts + Google Trends → extracts keywords
 Step 4: Assemble → assemble_output.py → daily_trending_{REGION}.json
@@ -178,34 +178,23 @@ lower thresholds. Start conservative and widen if needed.
 
 ### Step 1 — Fetch
 
-Fetch data from Apify actors. Two regions are supported, with separate
-Apify output directories:
+Dispatch Apify actors via `run_fetch.sh`, which reads configs and uses `xargs -P`
+to respect Apify's 32-actor concurrent limit. Default max-concurrent is 30.
 
-**Hong Kong:** 15 parallel Apify actors → `raw/_apify/hk/`
-  (1 Google + 4 IG hashtags + 10 IG users + Threads)
-**Taiwan:** IG users + Google Trends → `raw/_apify/tw/`
-  (ig_tw_user_* + google_apify_raw.json)
+**Hong Kong:** 16 actors (1 Google + 4 IG hashtags + 10 IG users + 1 Threads)
+**Taiwan:** 57 actors (1 Google + 56 IG users)
 
 ```bash
 # Determine date (default: yesterday)
 TARGET_DATE=$(date -d "yesterday" +%Y-%m-%d)
-RUN_DIR="runs/${TARGET_DATE}"
-mkdir -p "${RUN_DIR}/raw/_apify/hk" "${RUN_DIR}/raw/_apify/tw"
 
-# HK: Read configs + run 15 actors in parallel → raw/_apify/hk/
-# TW: Run IG user scraper + Google Trends → raw/_apify/tw/
-
-# HK: Read configs + run 15 actors in parallel (see scripts/apify_fetch.sh)
-# TW: Run Instagram user scraper for each user in instagram_users_taiwan
-# Output filenames:
-#   HK users: ig_user_<username>_apify_raw.json
-#   TW users: ig_tw_user_<username>_apify_raw.json
-# ... (same as old Step 1) ...
-
-wait
+# Fetch data with concurrency control
+bash scripts/run_fetch.sh --date "$TARGET_DATE" --region hk
+# or for Taiwan:
+bash scripts/run_fetch.sh --date "$TARGET_DATE" --region tw
 
 # Normalize
-python3 scripts/normalize_raw.py --date "$TARGET_DATE" --run-dir "$RUN_DIR" --config config/social_listening_v1.json
+python3 scripts/normalize_raw.py --date "$TARGET_DATE" --run-dir "runs/${TARGET_DATE}" --config config/social_listening_v1.json
 ```
 
 ### Step 2 — Filter
