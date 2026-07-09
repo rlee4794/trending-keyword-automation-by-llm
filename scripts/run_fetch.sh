@@ -147,7 +147,23 @@ echo "[run_fetch] ${REGION}: ${JOB_COUNT} jobs, max-concurrent=${MAX_CONCURRENT}
 
 xargs -d '\n' -P "$MAX_CONCURRENT" -I {} bash -c '_run_job "$@"' _ {} < "$JOB_FILE"
 
+# ── Verify all expected outputs ──────────────────────────────────────
+
+FAILED=""
+for f in "$RUN_DIR"/*_apify_raw.json; do
+    [ -s "$f" ] && continue
+    FAILED="$FAILED  $(basename "$f")\n"
+done
+
+if [ -n "$FAILED" ]; then
+    FAILED_COUNT=$(echo -e "$FAILED" | grep -c .)
+    printf "[run_fetch] ERROR: ${REGION}: %d platform(s) failed to produce output:\n%b" \
+           "$FAILED_COUNT" "$FAILED" >&2
+    echo "[run_fetch] Pipeline aborted — fix failing actors before retrying." >&2
+    exit 1
+fi
+
 # Cleanup
 rm -f "$JOB_FILE"
 
-echo "[run_fetch] ${REGION}: All ${JOB_COUNT} jobs completed."
+echo "[run_fetch] ${REGION}: All ${JOB_COUNT} outputs verified."
