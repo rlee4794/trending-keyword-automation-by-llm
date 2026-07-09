@@ -2,16 +2,13 @@
 """Assemble filtered posts + Agent extraction → daily_trending.json.
 
 Reads:
-  runs/{date}/filtered/threshold_filtered.json
+  runs/{date}/filtered/hk/threshold_filtered.json
+  runs/{date}/filtered/tw/threshold_filtered.json  (if exists)
   Agent extraction JSON (via --extraction-file or --extraction-json)
 
 Writes:
   runs/{date}/daily_trending.json
   runs/latest → symlink to {date}
-
-Includes post-processing guards to catch common LLM extraction errors:
-  - Common Chinese function words misidentified as venues/dishes
-    (unless the term appears in a location context: 📍, 🗺️, 地址, etc.)
 
 Usage:
   python3 scripts/assemble_output.py --date 2026-07-07 --extraction-file /tmp/ext.json
@@ -22,7 +19,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -30,13 +26,6 @@ from pathlib import Path
 HKT = timezone(timedelta(hours=8))
 
 # Common Chinese characters that are almost never venue or dish names.
-# These are function words, adverbs, conjunctions, pronouns, and
-# generic verbs that can appear in any sentence.
-#
-# Exception: a term in this set may still be a legitimate venue/dish
-# if it appears in a location context in the caption (e.g. "📍不" for
-# the restaurant named 不 at 北角錦屏街33A號). The guard checks context
-# before dropping.
 COMMON_CHARS: set[str] = {
     "不", "的", "了", "是", "在", "有", "和", "都", "就", "也",
     "會", "要", "可", "好", "食", "飲", "去", "來", "我", "你",
@@ -45,15 +34,11 @@ COMMON_CHARS: set[str] = {
     "已", "更", "最", "又", "或", "與", "及",
 }
 
-# Location/address markers that indicate a term is being used as a
-# venue name rather than a common word.
 LOCATION_MARKERS: list[str] = [
     "📍", "🗺️", "地址", "位置", "地舖", "地下",
     "號地舖", "號地下", "號鋪",
 ]
 
-# Words that often precede a venue name in running text.
-# e.g. "北角串燒店「不」一直都非常人氣" — 串燒店 precedes the venue name.
 VENUE_PRECEDING_WORDS: list[str] = [
     "餐廳", "食店", "串燒店", "小店", "店", "鋪", "舖",
     "咖啡店", "茶餐廳", "酒樓", "名店", "大排檔", "冰室",
@@ -61,8 +46,6 @@ VENUE_PRECEDING_WORDS: list[str] = [
     "居酒屋", "酒吧", "cafe", "bistro", "bar",
 ]
 
-# Quotation marks that signal a proper noun in Chinese/English text.
-# "「不」" is almost certainly a restaurant name, not the negation word.
 QUOTE_PAIRS: list[tuple[str, str]] = [
     ("「", "」"),
     ("『", "』"),
@@ -71,21 +54,9 @@ QUOTE_PAIRS: list[tuple[str, str]] = [
 
 
 def _is_in_location_context(term: str, caption: str) -> bool:
-    """Check if a term appears in a venue-name context in the caption.
-
-    A single character like '不' could be a real restaurant name
-    (北角錦屏街33A號, 📍不, 串燒店「不」) or a common word (不太記得).
-
-    Three signals are checked:
-    1. Location marker proximity: term within 20 chars after 📍/🗺️/地址 etc.
-    2. Quotation marks: 「不」/『不』/"不" — quoted terms are proper nouns.
-    3. Venue-preceding words: "串燒店「不」" — 串燒店/餐廳/食店 etc.
-       immediately before the quoted or bare term.
-    """
     if not term or not caption:
         return False
 
-    # Signal 1: Location marker proximity
     for marker in LOCATION_MARKERS:
         marker_pos = caption.find(marker)
         if marker_pos == -1:
@@ -95,13 +66,10 @@ def _is_in_location_context(term: str, caption: str) -> bool:
         if term in caption[after_start:after_end]:
             return True
 
-    # Signal 2: Quoted term — 「不」/『不』/"不"
     for open_q, close_q in QUOTE_PAIRS:
-        # Find pattern: open_q + term + close_q
         pattern = f"{open_q}{term}{close_q}"
         if pattern in caption:
             return True
-        # Also check: open_q + term at end (unclosed quote, common in truncated captions)
         idx = 0
         while True:
             pos = caption.find(open_q, idx)
@@ -109,29 +77,21 @@ def _is_in_location_context(term: str, caption: str) -> bool:
                 break
             after_open = pos + len(open_q)
             if caption[after_open:after_open + len(term)] == term:
-                # term immediately follows an opening quote
                 return True
             idx = pos + 1
 
-    # Signal 3: Venue-preceding word before the term
-    # e.g. "串燒店「不」" or "北角串燒店不" (without quotes)
     for vw in VENUE_PRECEDING_WORDS:
-        # Check: vw + optional quote + term
         for open_q, _ in QUOTE_PAIRS:
             combo = f"{vw}{open_q}{term}"
             if combo in caption:
                 return True
-        # Check: vw + term (bare, without quotes)
         vw_pos = caption.find(vw)
         if vw_pos == -1:
             continue
         after_vw = vw_pos + len(vw)
-        # Skip any opening quote
         if after_vw < len(caption) and caption[after_vw] in ('「', '『', '"'):
             after_vw += 1
-        # Check if term starts right after
         if caption[after_vw:after_vw + len(term)] == term:
-            # Ensure it's not part of a longer word (e.g. "店不大")
             after_term = after_vw + len(term)
             if after_term >= len(caption) or not caption[after_term].isalpha():
                 return True
@@ -140,12 +100,6 @@ def _is_in_location_context(term: str, caption: str) -> bool:
 
 
 def _guard_extraction(posts: list[dict]) -> tuple[int, int]:
-    """Strip invalid extractions from posts.
-
-    A term in COMMON_CHARS is dropped UNLESS it appears in a location
-    context in the caption (e.g. '📍不' for a real restaurant).
-    Returns (venue_dropped, dish_dropped).
-    """
     venue_dropped = 0
     dish_dropped = 0
 
@@ -162,16 +116,10 @@ def _guard_extraction(posts: list[dict]) -> tuple[int, int]:
             for v in venues:
                 if v in COMMON_CHARS:
                     if _is_in_location_context(v, caption):
-                        # Term appears near a location marker — could be a
-                        # real restaurant name (e.g. '📍不')
                         filtered.append(v)
                     else:
                         venue_dropped += 1
-                        print(
-                            f"⚠️  GUARD: dropped venue='{v}' from post "
-                            f"(caption: {caption[:80]}...)",
-                            file=sys.stderr,
-                        )
+                        print(f"⚠️  GUARD: dropped venue='{v}' (caption: {caption[:80]}...)", file=sys.stderr)
                 else:
                     filtered.append(v)
             ext["venues"] = filtered
@@ -185,11 +133,7 @@ def _guard_extraction(posts: list[dict]) -> tuple[int, int]:
                         filtered.append(d)
                     else:
                         dish_dropped += 1
-                        print(
-                            f"⚠️  GUARD: dropped dish='{d}' from post "
-                            f"(caption: {caption[:80]}...)",
-                            file=sys.stderr,
-                        )
+                        print(f"⚠️  GUARD: dropped dish='{d}' (caption: {caption[:80]}...)", file=sys.stderr)
                 else:
                     filtered.append(d)
             ext["dishes"] = filtered
@@ -198,19 +142,11 @@ def _guard_extraction(posts: list[dict]) -> tuple[int, int]:
 
 
 def _guard_keywords(keywords: list[dict], posts: list[dict]) -> tuple[list[dict], int]:
-    """Remove keywords with invalid terms.
-
-    A keyword in COMMON_CHARS is dropped UNLESS it appears in a
-    location context in at least one associated post's caption.
-    Returns (filtered_keywords, count_dropped).
-    """
     dropped = 0
     valid = []
     for kw in keywords:
         term = kw.get("term", "")
         if term in COMMON_CHARS:
-            # Check if this term appears in a location context in any
-            # associated post's caption
             in_context = False
             for i in kw.get("post_indices", []):
                 if i < len(posts):
@@ -219,134 +155,120 @@ def _guard_keywords(keywords: list[dict], posts: list[dict]) -> tuple[list[dict]
                         in_context = True
                         break
             if not in_context:
-                print(
-                    f"⚠️  GUARD: dropping common-char keyword '{term}' "
-                    f"(type={kw.get('type')}, not in location context)",
-                    file=sys.stderr,
-                )
+                print(f"⚠️  GUARD: dropping common-char keyword '{term}' (type={kw.get('type')})", file=sys.stderr)
                 dropped += 1
                 continue
         valid.append(kw)
     return valid, dropped
 
 
+def _load_filtered(date_str: str) -> tuple[list[dict], list[dict], list[dict], dict]:
+    """Load and merge HK + TW filtered data.
+
+    Returns (all_posts, all_google_trends, all_google_tw_trends, thresholds).
+    """
+    run_dir = Path(f"runs/{date_str}")
+    all_posts: list[dict] = []
+    all_google: list[dict] = []
+    all_google_tw: list[dict] = []
+    thresholds = {}
+
+    for region in ["hk", "tw"]:
+        fp = run_dir / "filtered" / region / "threshold_filtered.json"
+        if not fp.exists():
+            print(f"[{region}] SKIPPED (no filtered data)", file=sys.stderr)
+            continue
+        with fp.open(encoding="utf-8") as f:
+            data = json.load(f)
+        all_posts.extend(data.get("posts", []))
+        if region == "hk":
+            all_google = data.get("google_trends", [])
+        else:
+            all_google_tw = data.get("google_trends", [])
+        if not thresholds:
+            thresholds = data.get("threshold", {})
+
+    return all_posts, all_google, all_google_tw, thresholds
+
+
 def run(date_str: str, extraction: dict) -> None:
     """Assemble final output with guardrails."""
-    run_dir = Path(f"runs/{date_str}")
-    filtered_path = run_dir / "filtered" / "threshold_filtered.json"
+    all_posts, all_google, all_google_tw, thresholds = _load_filtered(date_str)
 
-    if not filtered_path.exists():
-        print(f"ERROR: {filtered_path} not found", file=sys.stderr)
+    if not all_posts and not all_google and not all_google_tw:
+        print("ERROR: no filtered data found for any region", file=sys.stderr)
         sys.exit(1)
-
-    with filtered_path.open(encoding="utf-8") as f:
-        filtered = json.load(f)
-
-    posts = filtered["posts"]
 
     # ── Step 1: Merge extraction into posts ─────────────────────────
     for pe in extraction.get("posts", []):
         idx = pe["index"]
-        if idx < len(posts):
-            posts[idx]["extracted"] = {
+        if idx < len(all_posts):
+            all_posts[idx]["extracted"] = {
                 "dishes": pe.get("dishes", []),
                 "venues": pe.get("venues", []),
                 "cuisines": pe.get("cuisines", []),
             }
 
     # ── Step 2: Post-processing guards ──────────────────────────────
-    venue_dropped, dish_dropped = _guard_extraction(posts)
+    venue_dropped, dish_dropped = _guard_extraction(all_posts)
     if venue_dropped or dish_dropped:
-        print(
-            f"🛡️  GUARD: stripped {venue_dropped} invalid venue(s), "
-            f"{dish_dropped} invalid dish(es) from posts",
-            file=sys.stderr,
-        )
+        print(f"🛡️  GUARD: stripped {venue_dropped} invalid venue(s), {dish_dropped} invalid dish(es)", file=sys.stderr)
 
-    # ── Step 2b: Rebuild keyword post_indices from cleaned posts ───
-    # After post-level guard removed invalid venues/dishes, the
-    # keyword post_indices may be stale. Rebuild them by checking
-    # which posts still contain each keyword term in their extracted fields.
+    # ── Step 3: Rebuild keyword post_indices from cleaned posts ─────
     for kw in extraction.get("keywords", []):
         term = kw["term"]
         kw_type = kw.get("type", "")
         new_indices = []
-        for i, p in enumerate(posts):
+        for i, p in enumerate(all_posts):
             ext = p.get("extracted", {})
             field = {"dish": "dishes", "venue": "venues", "cuisine": "cuisines"}.get(kw_type, "")
             if field and term in ext.get(field, []):
                 new_indices.append(i)
         old_count = len(kw.get("post_indices", []))
         if old_count > 0 and len(new_indices) < old_count:
-            print(
-                f"🔧  REBUILD: keyword '{term}' post_indices "
-                f"{old_count} → {len(new_indices)} (post-level guard cleaned some)",
-                file=sys.stderr,
-            )
+            print(f"🔧  REBUILD: keyword '{term}' post_indices {old_count} → {len(new_indices)}", file=sys.stderr)
         kw["post_indices"] = new_indices
 
-    # ── Step 3: Guard keywords (needs post_indices, must run BEFORE build) ─
+    # ── Step 4: Guard keywords ──────────────────────────────────────
     keywords = extraction.get("keywords", [])
-    keywords, kw_dropped = _guard_keywords(keywords, posts)
+    keywords, kw_dropped = _guard_keywords(keywords, all_posts)
     if kw_dropped:
-        print(
-            f"🛡️  GUARD: dropped {kw_dropped} invalid keyword(s)",
-            file=sys.stderr,
-        )
+        print(f"🛡️  GUARD: dropped {kw_dropped} invalid keyword(s)", file=sys.stderr)
 
-    # ── Step 4: Build keyword aggregates ────────────────────────────
+    # ── Step 5: Build keyword aggregates ────────────────────────────
     for kw in keywords:
         indices = kw.pop("post_indices", [])
         kw["post_count"] = len(indices)
         if indices:
-            total_likes = sum(
-                posts[i]["likes"] for i in indices if i < len(posts)
-            )
-            total_comments = sum(
-                posts[i]["comments"] for i in indices if i < len(posts)
-            )
-            total_shares = sum(
-                posts[i]["shares"] for i in indices if i < len(posts)
-            )
-            platforms = list(set(
-                posts[i]["platform"] for i in indices if i < len(posts)
-            ))
-            sources = list(set(
-                posts[i]["source"] for i in indices if i < len(posts)
-            ))
+            kw["total_likes"] = sum(all_posts[i]["likes"] for i in indices if i < len(all_posts))
+            kw["total_comments"] = sum(all_posts[i]["comments"] for i in indices if i < len(all_posts))
+            kw["total_shares"] = sum(all_posts[i]["shares"] for i in indices if i < len(all_posts))
+            kw["platforms"] = list(set(all_posts[i]["platform"] for i in indices if i < len(all_posts)))
+            kw["sources"] = list(set(all_posts[i]["source"] for i in indices if i < len(all_posts)))
         else:
-            # Google-only keyword (no social posts)
-            total_likes = 0
-            total_comments = 0
-            total_shares = 0
-            platforms = ["google"]
-            sources = ["google"]
-        kw["total_likes"] = total_likes
-        kw["total_comments"] = total_comments
-        kw["total_shares"] = total_shares
-        kw["platforms"] = platforms
-        kw["sources"] = sources
+            kw["total_likes"] = 0
+            kw["total_comments"] = 0
+            kw["total_shares"] = 0
+            kw["platforms"] = ["google"]
+            kw["sources"] = ["google"]
 
-    # ── Step 5: Assemble output ─────────────────────────────────────
-    google_terms = filtered.get("google_trends", [])
-    google_tw_terms = filtered.get("google_tw_trends", [])
-
+    # ── Step 6: Assemble output ─────────────────────────────────────
     output = {
         "schema_version": "1.0",
-        "date": filtered["date"],
+        "date": date_str,
         "generated_at": datetime.now(HKT).strftime("%Y-%m-%dT%H:%M:%S+08:00"),
-        "threshold": filtered["threshold"],
-        "posts": posts,
-        "google_trends": google_terms,
-        "google_tw_trends": google_tw_terms,
+        "threshold": thresholds,
+        "posts": all_posts,
+        "google_trends": all_google,
+        "google_tw_trends": all_google_tw,
         "keywords": keywords,
     }
 
+    run_dir = Path(f"runs/{date_str}")
     run_dir.mkdir(parents=True, exist_ok=True)
     out_path = run_dir / "daily_trending.json"
     with out_path.open("w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
-    # Ensure trailing newline
     content = out_path.read_text(encoding="utf-8")
     if content and not content.endswith("\n"):
         out_path.write_text(content + "\n", encoding="utf-8")
@@ -358,17 +280,15 @@ def run(date_str: str, extraction: dict) -> None:
     latest_link.symlink_to(date_str)
 
     print(
-        f"✅ {len(keywords)} keywords from {len(posts)} posts "
-        f"+ {len(google_terms)} Google terms + {len(google_tw_terms)} Google TW terms",
+        f"✅ {len(keywords)} keywords from {len(all_posts)} posts "
+        f"+ {len(all_google)} Google terms + {len(all_google_tw)} Google TW terms",
         file=sys.stderr,
     )
     print(f"Output: {out_path}", file=sys.stderr)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Assemble filtered posts + extraction → daily_trending.json"
-    )
+    parser = argparse.ArgumentParser(description="Assemble filtered posts + extraction → daily_trending.json")
     parser.add_argument("--date", required=True, help="Target date YYYY-MM-DD")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--extraction-file", help="Path to Agent extraction JSON")

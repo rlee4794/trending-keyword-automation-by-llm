@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 """normalize_raw.py — Transform Apify raw JSON into pipeline-normalised format.
 
-Reads:
-  runs/{date}/raw/_apify/google_apify_raw.json
-  runs/{date}/raw/_apify/ig_*.json
-  runs/{date}/raw/_apify/ig_user_*.json
-  runs/{date}/raw/_apify/threads_apify_raw.json
-  config/social_listening_v1.json (for broad_seed_group metadata)
+Reads (per region):
+  HK: runs/{date}/raw/_apify/hk/google_apify_raw.json
+      runs/{date}/raw/_apify/hk/ig_*_apify_raw.json
+      runs/{date}/raw/_apify/hk/ig_user_*_apify_raw.json
+      runs/{date}/raw/_apify/hk/threads_apify_raw.json
+  TW: runs/{date}/raw/_apify/tw/google_apify_raw.json
+      runs/{date}/raw/_apify/tw/ig_tw_user_*_apify_raw.json
 
-Writes:
-  runs/{date}/raw/google_raw.json
-  runs/{date}/raw/instagram_raw.json
-  runs/{date}/raw/threads_raw.json
+Writes (per region):
+  runs/{date}/raw/hk/google_raw.json
+  runs/{date}/raw/hk/instagram_raw.json
+  runs/{date}/raw/hk/threads_raw.json
+  runs/{date}/raw/tw/google_raw.json
+  runs/{date}/raw/tw/instagram_raw.json
 
 Usage:
   python3 normalize_raw.py --date 2026-06-25 --run-dir runs/2026-06-25 --config config/social_listening_v1.json
+  python3 normalize_raw.py --date 2026-07-09 --run-dir runs/2026-07-09 --config config/social_listening_v1.json --region tw
 """
 
 from __future__ import annotations
@@ -29,7 +33,7 @@ from typing import Any
 
 
 # ---------------------------------------------------------------------------
-# Helpers (mirror social_pipeline.apify normalisers for standalone use)
+# Helpers
 # ---------------------------------------------------------------------------
 
 HKT = timezone(timedelta(hours=8))
@@ -40,7 +44,6 @@ def _parse_timestamp(ts: str | None) -> datetime | None:
     if not ts:
         return None
     try:
-        # Handle Z suffix and +00:00 offset
         s = ts.strip().replace("Z", "+00:00")
         return datetime.fromisoformat(s)
     except (ValueError, TypeError):
@@ -50,27 +53,41 @@ def _parse_timestamp(ts: str | None) -> datetime | None:
 def _is_too_old(taken_at: datetime | None, cutoff: datetime) -> bool:
     """Return True if the post's taken_at is before the cutoff."""
     if taken_at is None:
-        # No timestamp → cannot verify age → keep (fail-open)
         return False
     return taken_at < cutoff
 
 
-def _load_seen_urls(run_dir: Path, lookback_days: int = 6) -> set[str]:
-    """Collect all post URLs from previous N days' instagram_raw.json.
-
-    Reads raw Instagram data from previous days to build a dedup set.
-    A post that appeared in a previous day's top-N scrape should not
-    be counted again in today's output — it contributes no volume and
-    no engagement for the current day.
-
-    Missing or malformed files are silently skipped (fail-open).
-    """
+def _load_seen_urls(run_dir: Path, region: str, lookback_days: int = 6) -> set[str]:
+    """Collect all post URLs from previous N days' region-specific instagram_raw.json."""
     seen: set[str] = set()
     run_date = date.fromisoformat(run_dir.name)
 
     for i in range(1, lookback_days + 1):
         prev_date = run_date - timedelta(days=i)
-        prev_raw = Path(f"runs/{prev_date.isoformat()}/raw/instagram_raw.json")
+        prev_raw = Path(f"runs/{prev_date.isoformat()}/raw/{region}/instagram_raw.json")
+        if not prev_raw.exists():
+            continue
+        try:
+            with prev_raw.open("r", encoding="utf-8") as f:
+                data = json.load(f)
+            for rec in data.get("records", []):
+                url = (rec.get("raw_payload") or {}).get("url", "")
+                if url:
+                    seen.add(url)
+        except (json.JSONDecodeError, OSError):
+            continue
+
+    return seen
+
+
+def _load_seen_threads_urls(run_dir: Path, lookback_days: int = 6) -> set[str]:
+    """Collect all Threads post URLs from previous N days' hk/threads_raw.json."""
+    seen: set[str] = set()
+    run_date = date.fromisoformat(run_dir.name)
+
+    for i in range(1, lookback_days + 1):
+        prev_date = run_date - timedelta(days=i)
+        prev_raw = Path(f"runs/{prev_date.isoformat()}/raw/hk/threads_raw.json")
         if not prev_raw.exists():
             continue
         try:
@@ -87,13 +104,7 @@ def _load_seen_urls(run_dir: Path, lookback_days: int = 6) -> set[str]:
 
 
 def _normalise_timestamp(ts: Any) -> str | None:
-    """Convert a timestamp to an ISO-8601 UTC string.
-
-    Accepts:
-      - ISO-8601 string (e.g. 2026-07-06T10:08:02+00:00) → returned as-is
-      - Unix epoch (int/float, seconds) → converted to ISO UTC
-      - None / empty → None
-    """
+    """Convert a timestamp to an ISO-8601 UTC string."""
     if ts is None or ts == "":
         return None
     if isinstance(ts, (int, float)):
@@ -101,7 +112,6 @@ def _normalise_timestamp(ts: Any) -> str | None:
             return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
         except (ValueError, OSError):
             return None
-    # Already a string — assume ISO
     return str(ts)
 
 
@@ -115,11 +125,7 @@ def _engagement_tier(likes: int, comments: int) -> str:
 
 
 def _compute_windows(target_date_str: str) -> dict[str, str]:
-    """Compute current and previous weekly windows from target date.
-
-    window_current = target_date ±3 days
-    window_previous = 7 days before window_current
-    """
+    """Compute current and previous weekly windows from target date."""
     target_dt = datetime.strptime(target_date_str, "%Y-%m-%d").replace(tzinfo=HKT)
     current_start = target_dt - timedelta(days=3)
     current_end = target_dt + timedelta(days=3)
@@ -140,17 +146,10 @@ def _normalise_google_trends(
     broad_seed_group: list[str],
     windows: dict[str, str],
 ) -> dict[str, Any]:
-    """Convert Google Trends Apify dataset items into pipeline-normalised format.
-
-    Supports two actor output formats:
-    1. Flat list: [{"term": "xxx", "trend_volume_raw": 500000}, ...]
-    2. Nested (nWhM7vTPu16lcwuIg): [{"geo": "HK", "trending_searches": [{"term": ..., "trend_volume_formatted": ...}]}]
-    """
+    """Convert Google Trends Apify dataset items into pipeline-normalised format."""
     records: list[dict[str, Any]] = []
 
-    # Detect format: if any item has a "trending_searches" key, flatten it
     if raw_items and any("trending_searches" in item for item in raw_items):
-        # Nested format — flatten trending_searches from all items
         for item in raw_items:
             geo = item.get("geo", "")
             language = item.get("language", "")
@@ -166,7 +165,6 @@ def _normalise_google_trends(
                     "raw_payload": {**s, "geo": geo, "language": language},
                 })
     else:
-        # Flat format (original)
         for item in raw_items:
             term = item.get("term") or ""
             current_volume = item.get("trend_volume_raw", 0) or 0
@@ -182,17 +180,9 @@ def _normalise_google_trends(
     return {
         "platform": "google_trends",
         "run_at": windows["current_start"],
-        "window_current": {
-            "start": windows["current_start"],
-            "end": windows["current_end"],
-        },
-        "window_previous": {
-            "start": windows["previous_start"],
-            "end": windows["previous_end"],
-        },
-        "seed_context": {
-            "broad_seed_group": broad_seed_group,
-        },
+        "window_current": {"start": windows["current_start"], "end": windows["current_end"]},
+        "window_previous": {"start": windows["previous_start"], "end": windows["previous_end"]},
+        "seed_context": {"broad_seed_group": broad_seed_group},
         "records": records,
     }
 
@@ -236,10 +226,6 @@ def _normalise_instagram_user_posts(
 ) -> list[dict[str, Any]]:
     """Convert Instagram user-posts scraper output into pipeline-normalised records.
 
-    The user-posts scraper (queenlike_xystos/instagram-posts-reels-scraper---no-cookies)
-    returns posts from a specific user's feed. Each post is treated as a unique signal
-    from a curated foodie source (source_kind = "user_post").
-
     Args:
         geo: Geo tag for the source ("HK" for Hong Kong, "TW" for Taiwan).
     """
@@ -274,17 +260,7 @@ def _normalise_instagram_user_posts(
 def _normalise_threads_posts(
     raw_items: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
-    """Convert Threads search scraper output into pipeline-normalised records.
-
-    The Threads scraper (lct1dlYksEDIG9If9) returns posts matching
-    keywords. Each post is treated as a signal from the Threads
-    platform (source_kind = "search").
-
-    Input fields: post_url, text_content, created_at, username, display_name,
-    like_count, reply_count, repost_count, share_count, view_count,
-    quote_count, hashtags, mentions, search_keyword, topic_tag, search_filter,
-    keyword_match, post_code, followers_count, etc.
-    """
+    """Convert Threads search scraper output into pipeline-normalised records."""
     records: list[dict[str, Any]] = []
     for item in raw_items:
         text = item.get("text_content") or ""
@@ -319,65 +295,33 @@ def _normalise_threads_posts(
     return records
 
 
-def _load_seen_threads_urls(run_dir: Path, lookback_days: int = 6) -> set[str]:
-    """Collect all Threads post URLs from previous N days' threads_raw.json."""
-    seen: set[str] = set()
-    run_date = date.fromisoformat(run_dir.name)
-
-    for i in range(1, lookback_days + 1):
-        prev_date = run_date - timedelta(days=i)
-        prev_raw = Path(f"runs/{prev_date.isoformat()}/raw/threads_raw.json")
-        if not prev_raw.exists():
-            continue
-        try:
-            with prev_raw.open("r", encoding="utf-8") as f:
-                data = json.load(f)
-            for rec in data.get("records", []):
-                url = (rec.get("raw_payload") or {}).get("url", "")
-                if url:
-                    seen.add(url)
-        except (json.JSONDecodeError, OSError):
-            continue
-
-    return seen
-
-
 # ---------------------------------------------------------------------------
-# Main
+# Region processing
 # ---------------------------------------------------------------------------
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description="Normalize Apify raw → pipeline format")
-    parser.add_argument("--date", required=True, help="Target date (YYYY-MM-DD)")
-    parser.add_argument("--run-dir", required=True, help="Run directory (e.g. runs/2026-06-25)")
-    parser.add_argument("--config", required=True, help="Path to social_listening_v1.json")
-    parser.add_argument("--max-age-days", type=int, default=30,
-                        help="Discard Instagram posts older than N days (default: 30, 0 = disable)")
-    args = parser.parse_args()
+def _process_region(
+    region: str,
+    run_dir: Path,
+    config: dict[str, Any],
+    windows: dict[str, str],
+    max_age_days: int,
+) -> None:
+    """Process one region's Apify data → normalized raw JSON.
 
-    run_dir = Path(args.run_dir)
-    config_path = Path(args.config)
-    target_date = args.date
-    max_age_days = args.max_age_days
+    Region "hk": Google Trends + IG hashtags + IG users + Threads
+    Region "tw": Google Trends + IG TW users
+    """
+    apify_dir = run_dir / "raw" / "_apify" / region
+    raw_out_dir = run_dir / "raw" / region
 
-    # Load config for broad_seed_group
-    if not config_path.exists():
-        print(f"ERROR: Config not found: {config_path}", file=sys.stderr)
-        sys.exit(1)
-    with config_path.open(encoding="utf-8") as f:
-        config = json.load(f)
-    broad_seed_group = config.get("broad_seeds", {}).get("google", ["香港美食", "hk food"])
-    broad_seed_group_tw = config.get("broad_seeds", {}).get("google_taiwan", ["台灣美食", "台北美食"])
-
-    # Compute windows
-    windows = _compute_windows(target_date)
-
-    apify_dir = run_dir / "raw" / "_apify"
     if not apify_dir.exists():
-        print(f"ERROR: Apify raw directory not found: {apify_dir}", file=sys.stderr)
-        sys.exit(1)
+        print(f"{region}: SKIPPED (no _apify/{region} data)", file=sys.stderr)
+        return
 
-    # --- Google Trends ---
+    broad_seeds_key = "google_taiwan" if region == "tw" else "google"
+    broad_seed_group = config.get("broad_seeds", {}).get(broad_seeds_key, [])
+
+    # ── Google Trends ──────────────────────────────────────────────
     google_apify_path = apify_dir / "google_apify_raw.json"
     if google_apify_path.exists() and google_apify_path.stat().st_size > 0:
         with google_apify_path.open(encoding="utf-8") as f:
@@ -385,73 +329,58 @@ def main() -> None:
         if not isinstance(google_raw_items, list):
             google_raw_items = []
         google_output = _normalise_google_trends(google_raw_items, broad_seed_group, windows)
-        google_out_path = run_dir / "raw" / "google_raw.json"
+        # Tag TW geo on records
+        if region == "tw":
+            for rec in google_output["records"]:
+                rp = rec.get("raw_payload", {})
+                rp["geo"] = "TW"
+                rec["raw_payload"] = rp
+        google_out_path = raw_out_dir / "google_raw.json"
         google_out_path.parent.mkdir(parents=True, exist_ok=True)
         google_out_path.write_text(
             json.dumps(google_output, ensure_ascii=False, indent=2), encoding="utf-8"
         )
-        print(f"google: {len(google_output['records'])} records")
+        print(f"{region} google: {len(google_output['records'])} records")
     else:
-        print("google: SKIPPED (no _apify data)")
+        print(f"{region} google: SKIPPED (no _apify data)")
 
-    # --- Google Trends Taiwan ---
-    google_tw_apify_path = apify_dir / "google_tw_apify_raw.json"
-    if google_tw_apify_path.exists() and google_tw_apify_path.stat().st_size > 0:
-        with google_tw_apify_path.open(encoding="utf-8") as f:
-            google_tw_raw_items = json.load(f)
-        if not isinstance(google_tw_raw_items, list):
-            google_tw_raw_items = []
-        google_tw_output = _normalise_google_trends(google_tw_raw_items, broad_seed_group_tw, windows)
-        # Tag with TW geo
-        for rec in google_tw_output["records"]:
-            rp = rec.get("raw_payload", {})
-            rp["geo"] = "TW"
-            rec["raw_payload"] = rp
-        google_tw_out_path = run_dir / "raw" / "google_tw_raw.json"
-        google_tw_out_path.parent.mkdir(parents=True, exist_ok=True)
-        google_tw_out_path.write_text(
-            json.dumps(google_tw_output, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
-        print(f"google_tw: {len(google_tw_output['records'])} records")
+    # ── Instagram ───────────────────────────────────────────────────
+    if region == "hk":
+        all_ig_files = sorted(glob(str(apify_dir / "ig_*_apify_raw.json")))
+        # ig_* also matches ig_user_* — exclude user files from hashtag processing
+        ig_hashtag_files = [f for f in all_ig_files if "ig_user_" not in Path(f).stem]
+        ig_user_files = sorted(glob(str(apify_dir / "ig_user_*_apify_raw.json")))
     else:
-        print("google_tw: SKIPPED (no _apify data)")
+        ig_hashtag_files = []
+        ig_user_files = []
+    ig_tw_user_files = sorted(glob(str(apify_dir / "ig_tw_user_*_apify_raw.json"))) if region == "tw" else []
 
-    # --- Instagram (merge all hashtag + user-post files, with cross-day dedup + age filter) ---
-    ig_hashtag_files = sorted(glob(str(apify_dir / "ig_*_apify_raw.json")))
-    ig_user_files = sorted(glob(str(apify_dir / "ig_user_*_apify_raw.json")))
-    ig_tw_user_files = sorted(glob(str(apify_dir / "ig_tw_user_*_apify_raw.json")))
     if ig_hashtag_files or ig_user_files or ig_tw_user_files:
-        # Compute age cutoff (if max_age_days > 0)
         age_cutoff = None
         if max_age_days > 0:
-            scrape_dt = datetime.strptime(target_date, "%Y-%m-%d").replace(tzinfo=HKT)
+            scrape_dt = datetime.strptime(windows["run_date"], "%Y-%m-%d").replace(tzinfo=HKT)
             age_cutoff = scrape_dt - timedelta(days=max_age_days)
-            print(f"instagram: age filter enabled, discarding posts older than {age_cutoff.isoformat()}", file=sys.stderr)
+            print(f"{region} instagram: age filter enabled, discarding posts older than {age_cutoff.isoformat()}", file=sys.stderr)
 
-        # Load seen URLs from previous 6 days for cross-day dedup.
-        # A post that already appeared in a previous day's top-N scrape
-        # is excluded from today's output — it contributes zero volume
-        # and zero engagement for the current day.
-        seen_urls = _load_seen_urls(run_dir, lookback_days=6)
-        print(f"instagram: {len(seen_urls)} seen URLs from previous days", file=sys.stderr)
+        seen_urls = _load_seen_urls(run_dir, region, lookback_days=6)
+        print(f"{region} instagram: {len(seen_urls)} seen URLs from previous days", file=sys.stderr)
 
         all_records: list[dict[str, Any]] = []
         dedup_skipped = 0
         age_skipped = 0
+
+        # HK hashtag posts
         for ig_file in ig_hashtag_files:
             with open(ig_file, encoding="utf-8") as f:
                 ig_raw_items = json.load(f)
             if not isinstance(ig_raw_items, list):
                 ig_raw_items = []
-            # Extract hashtag from filename: ig_<hashtag>_apify_raw.json
-            stem = Path(ig_file).stem  # ig_hkfood_apify_raw
+            stem = Path(ig_file).stem
             hashtag = stem.replace("ig_", "").replace("_apify_raw", "")
             records = _normalise_instagram_posts(ig_raw_items, hashtag)
             for rec in records:
                 if age_cutoff is not None:
-                    taken_at = _parse_timestamp(
-                        (rec.get("raw_payload") or {}).get("taken_at_timestamp")
-                    )
+                    taken_at = _parse_timestamp((rec.get("raw_payload") or {}).get("taken_at_timestamp"))
                     if _is_too_old(taken_at, age_cutoff):
                         age_skipped += 1
                         continue
@@ -461,21 +390,18 @@ def main() -> None:
                     continue
                 all_records.append(rec)
 
-        # Process user-post files (Hong Kong)
+        # HK user posts
         for ig_file in ig_user_files:
             with open(ig_file, encoding="utf-8") as f:
                 ig_raw_items = json.load(f)
             if not isinstance(ig_raw_items, list):
                 ig_raw_items = []
-            # Extract username from filename: ig_user_<username>_apify_raw.json
-            stem = Path(ig_file).stem  # ig_user_girlsfoodies_apify_raw
+            stem = Path(ig_file).stem
             username = stem.replace("ig_user_", "").replace("_apify_raw", "")
             records = _normalise_instagram_user_posts(ig_raw_items, username, geo="HK")
             for rec in records:
                 if age_cutoff is not None:
-                    taken_at = _parse_timestamp(
-                        (rec.get("raw_payload") or {}).get("taken_at_timestamp")
-                    )
+                    taken_at = _parse_timestamp((rec.get("raw_payload") or {}).get("taken_at_timestamp"))
                     if _is_too_old(taken_at, age_cutoff):
                         age_skipped += 1
                         continue
@@ -485,22 +411,19 @@ def main() -> None:
                     continue
                 all_records.append(rec)
 
-        # Process Taiwan user-post files (ig_tw_user_<username>_apify_raw.json)
+        # TW user posts
         tw_user_count = 0
         for ig_file in ig_tw_user_files:
             with open(ig_file, encoding="utf-8") as f:
                 ig_raw_items = json.load(f)
             if not isinstance(ig_raw_items, list):
                 ig_raw_items = []
-            # Extract username from filename: ig_tw_user_<username>_apify_raw.json
-            stem = Path(ig_file).stem  # ig_tw_user_foodie_nana__apify_raw
+            stem = Path(ig_file).stem
             username = stem.replace("ig_tw_user_", "").replace("_apify_raw", "")
             records = _normalise_instagram_user_posts(ig_raw_items, username, geo="TW")
             for rec in records:
                 if age_cutoff is not None:
-                    taken_at = _parse_timestamp(
-                        (rec.get("raw_payload") or {}).get("taken_at_timestamp")
-                    )
+                    taken_at = _parse_timestamp((rec.get("raw_payload") or {}).get("taken_at_timestamp"))
                     if _is_too_old(taken_at, age_cutoff):
                         age_skipped += 1
                         continue
@@ -515,24 +438,13 @@ def main() -> None:
 
         instagram_output = {
             "platform": "instagram",
+            "region": region,
             "run_at": windows["current_start"],
-            "window_current": {
-                "start": windows["current_start"],
-                "end": windows["current_end"],
-            },
-            "window_previous": {
-                "start": windows["previous_start"],
-                "end": windows["previous_end"],
-            },
-            "seed_context": {
-                "broad_seed_group": broad_seed_group,
-            },
+            "window_current": {"start": windows["current_start"], "end": windows["current_end"]},
+            "window_previous": {"start": windows["previous_start"], "end": windows["previous_end"]},
+            "seed_context": {"broad_seed_group": broad_seed_group},
             "records": all_records,
-            "_dedup": {
-                "lookback_days": 6,
-                "seen_urls_count": len(seen_urls),
-                "skipped": dedup_skipped,
-            },
+            "_dedup": {"lookback_days": 6, "seen_urls_count": len(seen_urls), "skipped": dedup_skipped},
         }
         if max_age_days > 0:
             instagram_output["_age_filter"] = {
@@ -540,18 +452,21 @@ def main() -> None:
                 "cutoff": age_cutoff.isoformat() if age_cutoff else None,
                 "skipped": age_skipped,
             }
-        ig_out_path = run_dir / "raw" / "instagram_raw.json"
+        ig_out_path = raw_out_dir / "instagram_raw.json"
         ig_out_path.parent.mkdir(parents=True, exist_ok=True)
         ig_out_path.write_text(
             json.dumps(instagram_output, ensure_ascii=False, indent=2), encoding="utf-8"
         )
         age_msg = f", {age_skipped} age-skipped" if age_skipped > 0 else ""
         tw_msg = f", {tw_user_count} from TW users" if tw_user_count > 0 else ""
-        print(f"instagram: {len(all_records)} records kept, {dedup_skipped} dedup-skipped{age_msg}{tw_msg} (from {total_before} total)")
+        print(f"{region} instagram: {len(all_records)} records kept, {dedup_skipped} dedup-skipped{age_msg}{tw_msg} (from {total_before} total)")
     else:
-        print("instagram: SKIPPED (no _apify data)")
+        print(f"{region} instagram: SKIPPED (no _apify data)")
 
-    # --- Threads (search posts, with age filter + cross-day dedup) ---
+    # ── Threads (HK only) ───────────────────────────────────────────
+    if region != "hk":
+        return
+
     threads_apify_path = apify_dir / "threads_apify_raw.json"
     if threads_apify_path.exists() and threads_apify_path.stat().st_size > 0:
         with threads_apify_path.open(encoding="utf-8") as f:
@@ -559,14 +474,12 @@ def main() -> None:
         if not isinstance(threads_raw_items, list):
             threads_raw_items = []
 
-        # Age filter (same as Instagram)
         threads_age_cutoff = None
         if max_age_days > 0:
-            scrape_dt = datetime.strptime(target_date, "%Y-%m-%d").replace(tzinfo=HKT)
+            scrape_dt = datetime.strptime(windows["run_date"], "%Y-%m-%d").replace(tzinfo=HKT)
             threads_age_cutoff = scrape_dt - timedelta(days=max_age_days)
             print(f"threads: age filter enabled, discarding posts older than {threads_age_cutoff.isoformat()}", file=sys.stderr)
 
-        # Cross-day dedup
         seen_threads_urls = _load_seen_threads_urls(run_dir, lookback_days=6)
         print(f"threads: {len(seen_threads_urls)} seen URLs from previous days", file=sys.stderr)
 
@@ -576,9 +489,7 @@ def main() -> None:
         records = _normalise_threads_posts(threads_raw_items)
         for rec in records:
             if threads_age_cutoff is not None:
-                taken_at = _parse_timestamp(
-                    (rec.get("raw_payload") or {}).get("taken_at_timestamp")
-                )
+                taken_at = _parse_timestamp((rec.get("raw_payload") or {}).get("taken_at_timestamp"))
                 if _is_too_old(taken_at, threads_age_cutoff):
                     threads_age_skipped += 1
                     continue
@@ -592,24 +503,13 @@ def main() -> None:
 
         threads_output = {
             "platform": "threads",
+            "region": "hk",
             "run_at": windows["current_start"],
-            "window_current": {
-                "start": windows["current_start"],
-                "end": windows["current_end"],
-            },
-            "window_previous": {
-                "start": windows["previous_start"],
-                "end": windows["previous_end"],
-            },
-            "seed_context": {
-                "broad_seed_group": broad_seed_group,
-            },
+            "window_current": {"start": windows["current_start"], "end": windows["current_end"]},
+            "window_previous": {"start": windows["previous_start"], "end": windows["previous_end"]},
+            "seed_context": {"broad_seed_group": broad_seed_group},
             "records": all_threads,
-            "_dedup": {
-                "lookback_days": 6,
-                "seen_urls_count": len(seen_threads_urls),
-                "skipped": threads_dedup_skipped,
-            },
+            "_dedup": {"lookback_days": 6, "seen_urls_count": len(seen_threads_urls), "skipped": threads_dedup_skipped},
         }
         if max_age_days > 0:
             threads_output["_age_filter"] = {
@@ -617,7 +517,7 @@ def main() -> None:
                 "cutoff": threads_age_cutoff.isoformat() if threads_age_cutoff else None,
                 "skipped": threads_age_skipped,
             }
-        threads_out_path = run_dir / "raw" / "threads_raw.json"
+        threads_out_path = raw_out_dir / "threads_raw.json"
         threads_out_path.parent.mkdir(parents=True, exist_ok=True)
         threads_out_path.write_text(
             json.dumps(threads_output, ensure_ascii=False, indent=2), encoding="utf-8"
@@ -626,6 +526,39 @@ def main() -> None:
         print(f"threads: {len(all_threads)} records kept, {threads_dedup_skipped} dedup-skipped{threads_age_msg} (from {threads_total_before} total)")
     else:
         print("threads: SKIPPED (no _apify data)")
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Normalize Apify raw → pipeline format")
+    parser.add_argument("--date", required=True, help="Target date (YYYY-MM-DD)")
+    parser.add_argument("--run-dir", required=True, help="Run directory (e.g. runs/2026-06-25)")
+    parser.add_argument("--config", required=True, help="Path to social_listening_v1.json")
+    parser.add_argument("--region", choices=["hk", "tw"], help="Process only this region (default: both)")
+    parser.add_argument("--max-age-days", type=int, default=30,
+                        help="Discard Instagram posts older than N days (default: 30, 0 = disable)")
+    args = parser.parse_args()
+
+    run_dir = Path(args.run_dir)
+    config_path = Path(args.config)
+    target_date = args.date
+    max_age_days = args.max_age_days
+
+    if not config_path.exists():
+        print(f"ERROR: Config not found: {config_path}", file=sys.stderr)
+        sys.exit(1)
+    with config_path.open(encoding="utf-8") as f:
+        config = json.load(f)
+
+    windows = _compute_windows(target_date)
+
+    regions_to_process = [args.region] if args.region else ["hk", "tw"]
+
+    for region in regions_to_process:
+        _process_region(region, run_dir, config, windows, max_age_days)
 
 
 if __name__ == "__main__":

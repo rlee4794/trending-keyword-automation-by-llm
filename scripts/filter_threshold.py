@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
 """Filter normalized raw data by engagement threshold.
 
-Reads google_raw.json and instagram_raw.json, keeps high-engagement
-posts (like>threshold AND share>threshold), outputs filtered JSON.
+Reads raw/{region}/*.json, outputs filtered/{region}/threshold_filtered.json.
 
 Usage:
   python3 scripts/filter_threshold.py --date 2026-07-07
+  python3 scripts/filter_threshold.py --date 2026-07-07 --region tw
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -42,12 +41,14 @@ def filter_records(
     return kept, len(records), len(records) - len(kept)
 
 
-def run(date_str: str) -> None:
-    """Filter raw data by threshold, write filtered JSON for agent consumption."""
-    thresholds = load_thresholds()
+def _process_region(region: str, date_str: str, thresholds: dict) -> dict:
+    """Process one region's raw data → filtered output.
+
+    Returns the output dict for this region.
+    """
     run_dir = Path(f"runs/{date_str}")
-    raw_dir = run_dir / "raw"
-    filtered_dir = run_dir / "filtered"
+    raw_dir = run_dir / "raw" / region
+    filtered_dir = run_dir / "filtered" / region
     filtered_dir.mkdir(parents=True, exist_ok=True)
 
     # ── Instagram ──────────────────────────────────────────────────
@@ -64,27 +65,27 @@ def run(date_str: str) -> None:
             ig_cfg.get("min_likes", 1000),
             ig_cfg.get("min_shares", 500),
         )
-        print(f"Instagram: {len(ig_posts)}/{ig_total} posts passed threshold "
+        print(f"[{region}] Instagram: {len(ig_posts)}/{ig_total} posts passed threshold "
               f"(like≥{ig_cfg.get('min_likes')}, share≥{ig_cfg.get('min_shares')})",
               file=sys.stderr)
 
-    # ── Threads ─────────────────────────────────────────────────────
-    # Threads raw data follows same schema as Instagram (normalize_raw.py handles it)
-    threads_path = raw_dir / "threads_raw.json"
+    # ── Threads (HK only) ───────────────────────────────────────────
     threads_posts = []
     threads_total = threads_skipped = 0
 
-    if threads_path.exists():
-        with threads_path.open() as f:
-            threads_data = json.load(f)
-        th_cfg = thresholds.get("threads", {})
-        threads_posts, threads_total, threads_skipped = filter_records(
-            threads_data.get("records", []),
-            th_cfg.get("min_likes", 1000),
-            th_cfg.get("min_shares", 500),
-        )
-        print(f"Threads: {len(threads_posts)}/{threads_total} posts passed threshold",
-              file=sys.stderr)
+    if region == "hk":
+        threads_path = raw_dir / "threads_raw.json"
+        if threads_path.exists():
+            with threads_path.open() as f:
+                threads_data = json.load(f)
+            th_cfg = thresholds.get("threads", {})
+            threads_posts, threads_total, threads_skipped = filter_records(
+                threads_data.get("records", []),
+                th_cfg.get("min_likes", 1000),
+                th_cfg.get("min_shares", 500),
+            )
+            print(f"[{region}] Threads: {len(threads_posts)}/{threads_total} posts passed threshold",
+                  file=sys.stderr)
 
     # ── Google ──────────────────────────────────────────────────────
     google_path = raw_dir / "google_raw.json"
@@ -102,25 +103,7 @@ def run(date_str: str) -> None:
                     "volume": vol,
                     "related_terms": r.get("related_terms", []),
                 })
-        print(f"Google: {len(google_terms)} terms", file=sys.stderr)
-
-    # ── Google Trends Taiwan ─────────────────────────────────────────
-    google_tw_path = raw_dir / "google_tw_raw.json"
-    google_tw_terms = []
-
-    if google_tw_path.exists():
-        with google_tw_path.open() as f:
-            google_tw_data = json.load(f)
-        min_vol = thresholds.get("google", {}).get("min_volume", 0)
-        for r in google_tw_data.get("records", []):
-            vol = r.get("current_volume", 0) or 0
-            if vol >= min_vol:
-                google_tw_terms.append({
-                    "term": r.get("raw_representative", ""),
-                    "volume": vol,
-                    "related_terms": r.get("related_terms", []),
-                })
-        print(f"Google TW: {len(google_tw_terms)} terms", file=sys.stderr)
+        print(f"[{region}] Google: {len(google_terms)} terms", file=sys.stderr)
 
     # ── Assemble filtered output ────────────────────────────────────
     posts = []
@@ -158,6 +141,7 @@ def run(date_str: str) -> None:
 
     output = {
         "date": date_str,
+        "region": region,
         "threshold": {
             "instagram": thresholds.get("instagram", {}),
             "threads": thresholds.get("threads", {}),
@@ -165,34 +149,48 @@ def run(date_str: str) -> None:
         },
         "posts": posts,
         "google_trends": google_terms,
-        "google_tw_trends": google_tw_terms,
         "_stats": {
             "instagram_total": ig_total,
             "instagram_passed": len(ig_posts),
             "threads_total": threads_total,
             "threads_passed": len(threads_posts),
-            "google_tw_total": len(google_tw_terms),
         },
     }
 
     out_path = filtered_dir / "threshold_filtered.json"
     with out_path.open("w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
-    # Ensure trailing newline
     content = out_path.read_text()
     if content and not content.endswith("\n"):
         out_path.write_text(content + "\n")
 
     total_posts = len(posts)
-    print(f"Output: {total_posts} posts + {len(google_terms)} Google terms + {len(google_tw_terms)} Google TW terms → {out_path}",
+    print(f"[{region}] Output: {total_posts} posts + {len(google_terms)} Google terms → {out_path}",
           file=sys.stderr)
+
+    return output
+
+
+def run(date_str: str, region: str | None = None) -> None:
+    """Filter raw data by threshold, write filtered JSON for agent consumption."""
+    thresholds = load_thresholds()
+
+    regions_to_process = [region] if region else ["hk", "tw"]
+
+    for r in regions_to_process:
+        raw_dir = Path(f"runs/{date_str}") / "raw" / r
+        if not raw_dir.exists():
+            print(f"[{r}] SKIPPED (no raw/{r} data)", file=sys.stderr)
+            continue
+        _process_region(r, date_str, thresholds)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Filter raw data by engagement threshold")
     parser.add_argument("--date", required=True, help="Target date YYYY-MM-DD")
+    parser.add_argument("--region", choices=["hk", "tw"], help="Process only this region (default: both)")
     args = parser.parse_args()
-    run(args.date)
+    run(args.date, args.region)
 
 
 if __name__ == "__main__":

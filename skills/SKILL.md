@@ -193,16 +193,22 @@ lower thresholds. Start conservative and widen if needed.
 
 ### Step 1 — Fetch
 
-Fetch data from Apify actors. Two regions are supported:
+Fetch data from Apify actors. Two regions are supported, with separate
+Apify output directories:
 
-**Hong Kong:** 15 parallel Apify actors (1 Google + 4 IG hashtags + 10 IG users).
-**Taiwan:** Instagram user scraper + Google Trends. No Threads.
+**Hong Kong:** 15 parallel Apify actors → `raw/_apify/hk/`
+  (1 Google + 4 IG hashtags + 10 IG users + Threads)
+**Taiwan:** IG users + Google Trends → `raw/_apify/tw/`
+  (ig_tw_user_* + google_apify_raw.json)
 
 ```bash
 # Determine date (default: yesterday)
 TARGET_DATE=$(date -d "yesterday" +%Y-%m-%d)
 RUN_DIR="runs/${TARGET_DATE}"
-mkdir -p "${RUN_DIR}/raw/_apify"
+mkdir -p "${RUN_DIR}/raw/_apify/hk" "${RUN_DIR}/raw/_apify/tw"
+
+# HK: Read configs + run 15 actors in parallel → raw/_apify/hk/
+# TW: Run IG user scraper + Google Trends → raw/_apify/tw/
 
 # HK: Read configs + run 15 actors in parallel (see scripts/apify_fetch.sh)
 # TW: Run Instagram user scraper for each user in instagram_users_taiwan
@@ -223,13 +229,13 @@ python3 scripts/normalize_raw.py --date "$TARGET_DATE" --run-dir "$RUN_DIR" --co
 python3 scripts/filter_threshold.py --date "$TARGET_DATE"
 ```
 
-Output: `runs/YYYY-MM-DD/filtered/threshold_filtered.json`
+Output: `runs/YYYY-MM-DD/filtered/{region}/threshold_filtered.json`
 
 If 0 posts pass the threshold, warn and consider lowering thresholds in `config/threshold.json`.
 
 ### Step 3 — Extract Keywords (Agent)
 
-Read `filtered/threshold_filtered.json`. The agent examines each post's
+Read `filtered/{region}/threshold_filtered.json`. The agent examines each post's
 `caption_snippet` and `hashtags`, plus `google_trends` terms.
 
 #### Extraction Prompt
