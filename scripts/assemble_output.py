@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
-"""Assemble filtered posts + Agent extraction → daily_trending.json.
+"""Assemble filtered posts + Agent extraction → daily_trending_{REGION}.json.
 
 Reads:
-  runs/{date}/filtered/hk/threshold_filtered.json
-  runs/{date}/filtered/tw/threshold_filtered.json  (if exists)
+  runs/{date}/filtered/{region}/threshold_filtered.json
   Agent extraction JSON (via --extraction-file or --extraction-json)
 
 Writes:
-  runs/{date}/daily_trending.json
-  runs/latest → symlink to {date}
+  runs/{date}/daily_trending_{REGION}.json  (e.g. daily_trending_HK.json)
 
 Usage:
-  python3 scripts/assemble_output.py --date 2026-07-07 --extraction-file /tmp/ext.json
-  python3 scripts/assemble_output.py --date 2026-07-07 --extraction-json '{"posts": [...], "keywords": [...]}'
+  python3 scripts/assemble_output.py --date 2026-07-07 --region hk --extraction-file /tmp/ext.json
+  python3 scripts/assemble_output.py --date 2026-07-07 --region tw --extraction-json '{"posts": [...], "keywords": [...]}'
 """
 
 from __future__ import annotations
@@ -24,6 +22,8 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 HKT = timezone(timedelta(hours=8))
+
+REGION_LABEL: dict[str, str] = {"hk": "HK", "tw": "TW"}
 
 # Common Chinese characters that are almost never venue or dish names.
 COMMON_CHARS: set[str] = {
@@ -162,55 +162,48 @@ def _guard_keywords(keywords: list[dict], posts: list[dict]) -> tuple[list[dict]
     return valid, dropped
 
 
-def _load_filtered(date_str: str) -> tuple[list[dict], list[dict], list[dict], dict]:
-    """Load and merge HK + TW filtered data.
+def _load_filtered(date_str: str, region: str) -> tuple[list[dict], list[dict], dict]:
+    """Load filtered data for one region.
 
-    Returns (all_posts, all_google_trends, all_google_tw_trends, thresholds).
+    Returns (posts, google_trends, thresholds).
     """
     run_dir = Path(f"runs/{date_str}")
-    all_posts: list[dict] = []
-    all_google: list[dict] = []
-    all_google_tw: list[dict] = []
-    thresholds = {}
+    fp = run_dir / "filtered" / region / "threshold_filtered.json"
+    if not fp.exists():
+        print(f"ERROR: {fp} not found", file=sys.stderr)
+        sys.exit(1)
 
-    for region in ["hk", "tw"]:
-        fp = run_dir / "filtered" / region / "threshold_filtered.json"
-        if not fp.exists():
-            print(f"[{region}] SKIPPED (no filtered data)", file=sys.stderr)
-            continue
-        with fp.open(encoding="utf-8") as f:
-            data = json.load(f)
-        all_posts.extend(data.get("posts", []))
-        if region == "hk":
-            all_google = data.get("google_trends", [])
-        else:
-            all_google_tw = data.get("google_trends", [])
-        if not thresholds:
-            thresholds = data.get("threshold", {})
+    with fp.open(encoding="utf-8") as f:
+        data = json.load(f)
 
-    return all_posts, all_google, all_google_tw, thresholds
+    posts = data.get("posts", [])
+    google_terms = data.get("google_trends", [])
+    thresholds = data.get("threshold", {})
+
+    return posts, google_terms, thresholds
 
 
-def run(date_str: str, extraction: dict) -> None:
-    """Assemble final output with guardrails."""
-    all_posts, all_google, all_google_tw, thresholds = _load_filtered(date_str)
+def run(date_str: str, region: str, extraction: dict) -> None:
+    """Assemble final output for one region with guardrails."""
+    region_label = REGION_LABEL.get(region, region.upper())
+    posts, google_terms, thresholds = _load_filtered(date_str, region)
 
-    if not all_posts and not all_google and not all_google_tw:
-        print("ERROR: no filtered data found for any region", file=sys.stderr)
+    if not posts and not google_terms:
+        print(f"ERROR: no filtered data for region '{region}'", file=sys.stderr)
         sys.exit(1)
 
     # ── Step 1: Merge extraction into posts ─────────────────────────
     for pe in extraction.get("posts", []):
         idx = pe["index"]
-        if idx < len(all_posts):
-            all_posts[idx]["extracted"] = {
+        if idx < len(posts):
+            posts[idx]["extracted"] = {
                 "dishes": pe.get("dishes", []),
                 "venues": pe.get("venues", []),
                 "cuisines": pe.get("cuisines", []),
             }
 
     # ── Step 2: Post-processing guards ──────────────────────────────
-    venue_dropped, dish_dropped = _guard_extraction(all_posts)
+    venue_dropped, dish_dropped = _guard_extraction(posts)
     if venue_dropped or dish_dropped:
         print(f"🛡️  GUARD: stripped {venue_dropped} invalid venue(s), {dish_dropped} invalid dish(es)", file=sys.stderr)
 
@@ -219,7 +212,7 @@ def run(date_str: str, extraction: dict) -> None:
         term = kw["term"]
         kw_type = kw.get("type", "")
         new_indices = []
-        for i, p in enumerate(all_posts):
+        for i, p in enumerate(posts):
             ext = p.get("extracted", {})
             field = {"dish": "dishes", "venue": "venues", "cuisine": "cuisines"}.get(kw_type, "")
             if field and term in ext.get(field, []):
@@ -231,7 +224,7 @@ def run(date_str: str, extraction: dict) -> None:
 
     # ── Step 4: Guard keywords ──────────────────────────────────────
     keywords = extraction.get("keywords", [])
-    keywords, kw_dropped = _guard_keywords(keywords, all_posts)
+    keywords, kw_dropped = _guard_keywords(keywords, posts)
     if kw_dropped:
         print(f"🛡️  GUARD: dropped {kw_dropped} invalid keyword(s)", file=sys.stderr)
 
@@ -240,11 +233,11 @@ def run(date_str: str, extraction: dict) -> None:
         indices = kw.pop("post_indices", [])
         kw["post_count"] = len(indices)
         if indices:
-            kw["total_likes"] = sum(all_posts[i]["likes"] for i in indices if i < len(all_posts))
-            kw["total_comments"] = sum(all_posts[i]["comments"] for i in indices if i < len(all_posts))
-            kw["total_shares"] = sum(all_posts[i]["shares"] for i in indices if i < len(all_posts))
-            kw["platforms"] = list(set(all_posts[i]["platform"] for i in indices if i < len(all_posts)))
-            kw["sources"] = list(set(all_posts[i]["source"] for i in indices if i < len(all_posts)))
+            kw["total_likes"] = sum(posts[i]["likes"] for i in indices if i < len(posts))
+            kw["total_comments"] = sum(posts[i]["comments"] for i in indices if i < len(posts))
+            kw["total_shares"] = sum(posts[i]["shares"] for i in indices if i < len(posts))
+            kw["platforms"] = list(set(posts[i]["platform"] for i in indices if i < len(posts)))
+            kw["sources"] = list(set(posts[i]["source"] for i in indices if i < len(posts)))
         else:
             kw["total_likes"] = 0
             kw["total_comments"] = 0
@@ -256,40 +249,37 @@ def run(date_str: str, extraction: dict) -> None:
     output = {
         "schema_version": "1.0",
         "date": date_str,
+        "region": region,
         "generated_at": datetime.now(HKT).strftime("%Y-%m-%dT%H:%M:%S+08:00"),
         "threshold": thresholds,
-        "posts": all_posts,
-        "google_trends": all_google,
-        "google_tw_trends": all_google_tw,
+        "posts": posts,
+        "google_trends": google_terms,
         "keywords": keywords,
     }
 
     run_dir = Path(f"runs/{date_str}")
     run_dir.mkdir(parents=True, exist_ok=True)
-    out_path = run_dir / "daily_trending.json"
+    out_path = run_dir / f"daily_trending_{region_label}.json"
     with out_path.open("w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
     content = out_path.read_text(encoding="utf-8")
     if content and not content.endswith("\n"):
         out_path.write_text(content + "\n", encoding="utf-8")
 
-    # Update symlink
-    latest_link = Path("runs/latest")
-    if latest_link.is_symlink() or latest_link.exists():
-        latest_link.unlink()
-    latest_link.symlink_to(date_str)
-
     print(
-        f"✅ {len(keywords)} keywords from {len(all_posts)} posts "
-        f"+ {len(all_google)} Google terms + {len(all_google_tw)} Google TW terms",
+        f"✅ [{region_label}] {len(keywords)} keywords from {len(posts)} posts "
+        f"+ {len(google_terms)} Google terms",
         file=sys.stderr,
     )
     print(f"Output: {out_path}", file=sys.stderr)
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Assemble filtered posts + extraction → daily_trending.json")
+    parser = argparse.ArgumentParser(
+        description="Assemble filtered posts + extraction → daily_trending_{REGION}.json"
+    )
     parser.add_argument("--date", required=True, help="Target date YYYY-MM-DD")
+    parser.add_argument("--region", required=True, choices=["hk", "tw"], help="Region to process")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--extraction-file", help="Path to Agent extraction JSON")
     group.add_argument("--extraction-json", help="Agent extraction JSON string")
@@ -301,7 +291,7 @@ def main() -> None:
     else:
         extraction = json.loads(args.extraction_json)
 
-    run(args.date, extraction)
+    run(args.date, args.region, extraction)
 
 
 if __name__ == "__main__":

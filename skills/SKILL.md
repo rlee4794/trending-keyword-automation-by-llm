@@ -16,7 +16,7 @@ dish names, venue names, and cuisine types.
 
 Taiwan coverage: Instagram user scraper (ig_tw_user_*) + Google Trends (google_tw).
 TW posts are tagged with `"geo": "TW"` and merged into the same instagram_raw.json.
-Google TW data goes to `google_tw_raw.json` → `google_tw_trends` in daily_trending.json.
+Google TW data goes to `google_tw_raw.json` → `google_tw_trends` in daily_trending_TW.json.
 No Threads for Taiwan.
 
 ## Quick Reference
@@ -25,7 +25,7 @@ No Threads for Taiwan.
 |-----------|--------|
 | "run trending pipeline" / "行trending pipeline" | Full run — **HK only** (Steps 1-4 + Summary) |
 | "run TW pipeline" / "行台灣pipeline" / "行TW" | Full run — **Taiwan only** (IG users + Google Trends TW) |
-| "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending.json` → present Top 10 by category with background |
+| "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending_HK.json or daily_trending_TW.json` → present Top 10 by category with background |
 | "trend analysis" / "compare trends" / "變動" / "走勢" | Run **Step T** (7-day snapshot comparison, on-demand) |
 
 ### ⚠️ Region selector rule
@@ -47,11 +47,11 @@ Do NOT run Step T automatically after a regular pipeline run.
 
 ### ⚠️ Already-run rule
 
-If today's pipeline has **already completed** (i.e. `daily_trending.json` exists
+If today's pipeline has **already completed** (i.e. `daily_trending_{REGION}.json` exists
 and was generated today), and the user asks about trends **without** explicitly
 requesting a re-run (e.g. just "run trending pipeline" / "有什麼trends" /
 "今日有咩趨勢"), do NOT re-execute the pipeline. Instead, read the existing
-`daily_trending.json` and present the results directly:
+`daily_trending_{REGION}.json` and present the results directly:
 
 1. **Top 10 by category** — split into:
    - 🔥 Social 熱門菜式（按 likes 排序，最多 10 個）
@@ -73,23 +73,26 @@ requesting a re-run (e.g. just "run trending pipeline" / "有什麼trends" /
 Step 1: Fetch    → apify_fetch.sh (15 actors) → normalize_raw.py
 Step 2: Filter   → filter_threshold.py (like>threshold AND share>threshold)
 Step 3: Extract  → Agent reads filtered posts + Google Trends → extracts keywords
-Step 4: Assemble → assemble_output.py → daily_trending.json
+Step 4: Assemble → assemble_output.py → daily_trending_{REGION}.json
 Step 5: Summary  → Present daily results in chat
 
 --- on-demand only (not part of daily pipeline) ---
 
 Step T: Trends  → trend_comparison.py (prepare) → Agent (fuzzy match) →
-                  trend_comparison.py (merge) → daily_trending.json enriched
+                  trend_comparison.py (merge) → daily_trending_{REGION}.json enriched
 ```
 
 ## Output Schema
 
-`runs/YYYY-MM-DD/daily_trending.json`:
+`runs/YYYY-MM-DD/daily_trending_{REGION}.json` (e.g. `daily_trending_HK.json`, `daily_trending_TW.json`):
+
+Each file is self-contained per region — no cross-region merging.
 
 ```json
 {
   "schema_version": "1.0",
   "date": "2026-07-07",
+  "region": "hk",
   "generated_at": "2026-07-07T10:00:00+08:00",
   "threshold": {
     "instagram": { "min_likes": 1000, "min_shares": 500 },
@@ -112,24 +115,6 @@ Step T: Trends  → trend_comparison.py (prepare) → Agent (fuzzy match) →
         "dishes": ["沙嗲拼盤", "燒蠔"],
         "venues": ["北角串燒店"],
         "cuisines": []
-      }
-    },
-    {
-      "platform": "instagram",
-      "source": "@foodie_nana_",
-      "source_kind": "user_post",
-      "geo": "TW",
-      "url": "https://www.instagram.com/p/...",
-      "likes": 1500,
-      "comments": 45,
-      "shares": 600,
-      "taken_at": "2026-07-06T20:15:00+08:00",
-      "caption_snippet": "台北東區新開嘅珍珠奶茶火鍋真係要試...",
-      "hashtags": ["台北美食", "珍珠奶茶", "火鍋"],
-      "extracted": {
-        "dishes": ["珍珠奶茶火鍋"],
-        "venues": ["台北東區"],
-        "cuisines": ["火鍋"]
       }
     }
   ],
@@ -365,14 +350,14 @@ Rules:
 After receiving the JSON, assemble the final output:
 
 ```bash
-python3 scripts/assemble_output.py --date YYYY-MM-DD --extraction-file /path/to/extraction.json
+python3 scripts/assemble_output.py --date YYYY-MM-DD --region hk --extraction-file /path/to/extraction.json
 ```
 
 The assembly script handles:
 - Merging extraction results into posts
 - Post-processing guards (stripping single-char / common-word false venues)
 - Keyword aggregation with engagement stats
-- Writing `daily_trending.json` + updating `runs/latest` symlink
+- Writing `daily_trending_{REGION}.json` + updating `runs/latest` symlink
 
 ### Step 5 — Present Summary
 
@@ -403,7 +388,7 @@ If a keyword appears on both channels, tag it `🔥🔍` to signal cross-channel
   • 大家樂冬瓜盅 (200 vol) 🔥🔍 — 相關詞：冬瓜盅、大家樂
   • 富臨漁港 (紅磡店) (2,000 vol) — 相關詞：富临渔港
 
-Full data: runs/YYYY-MM-DD/daily_trending.json
+Full data: runs/YYYY-MM-DD/daily_trending_HK.json
 ```
 
 #### Background extraction rules
@@ -452,7 +437,7 @@ Compare today's keywords against 7 days ago. Only two classifications:
 python3 scripts/trend_comparison.py --date YYYY-MM-DD --output /tmp/trend_snapshots.json
 ```
 
-This reads today's `daily_trending.json`, the 7-days-ago file (if available),
+This reads today's `daily_trending_{REGION}.json`, the 7-days-ago file (if available),
 and all intermediate days, then outputs:
 - `today_keywords`: today's keyword list with stats
 - `prev_keywords`: 7-days-ago keyword list (null if unavailable)
@@ -544,7 +529,7 @@ Rules:
 #### Step Tc — Merge results
 
 After receiving the Agent's JSON, merge trend fields back into today's
-daily_trending.json:
+daily_trending_{REGION}.json:
 
 ```bash
 python3 scripts/trend_comparison.py --date YYYY-MM-DD --merge /path/to/agent_output.json
