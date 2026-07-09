@@ -1,10 +1,14 @@
 ---
 name: hk-fnb-trending
 description: >
-  HK F&B social media trending keyword discovery pipeline.
-  Fetches data via Apify, filters by engagement threshold, then Agent
-  extracts dish/venue/cuisine keywords from top posts and Google Trends.
-  Triggered by: "run trending pipeline", "hk food trends", "跑趨勢關鍵字".
+  HK + TW F&B social media trending keyword pipeline.
+  Fetches Instagram/Threads/Google Trends via Apify, filters by engagement,
+  then LLM extracts dish/venue/cuisine keywords.
+  Triggered by any mention of food trends, trending keywords, pipeline
+  execution, or trend analysis for Hong Kong/Taiwan F&B.
+  Also handles read-only queries like "今日有咩trends" or "show trends for YYYY-MM-DD".
+  Trigger keywords: "run trending pipeline", "hk food trends", "跑趨勢關鍵字",
+  "今日有咩trends", "food trends", "trend analysis", "compare trends", "走勢", "變動".
 ---
 
 # HK F&B Trending Keyword Pipeline
@@ -18,6 +22,21 @@ Taiwan coverage: Instagram user scraper (ig_tw_user_*) + Google Trends (google_t
 TW posts are tagged with `"geo": "TW"` and merged into the same instagram_raw.json.
 Google TW data goes to `google_tw_raw.json` → `google_tw_trends` in daily_trending_TW.json.
 No Threads for Taiwan.
+
+## Prerequisites
+
+All commands must be run from the skill directory (`~/.agents/skills/hk-fnb-trending/`).
+
+| Dependency | Version / Notes |
+|------------|-----------------|
+| `bash` 4+ | |
+| `python3` 3.10+ | stdlib only — no external packages required |
+| `curl` | |
+| `jq` | JSON processing in shell scripts |
+| `xargs` | concurrency control (`-P` flag required) |
+| `APIFY_TOKEN` | Apify API token, set as environment variable |
+
+`runs/` is a symlink → ArkDrive personal space for persistent output storage.
 
 ## Quick Reference
 
@@ -183,9 +202,12 @@ lower thresholds. Start conservative and widen if needed.
 
 | Variable | Purpose |
 |----------|---------|
-| `APIFY_TOKEN` | Apify API authentication |
+| `APIFY_TOKEN` | Apify API authentication (set before running pipeline) |
 
 ## Procedure
+
+All commands below assume the working directory is the skill root
+(`~/.agents/skills/hk-fnb-trending/`).
 
 ### Step 1 — Fetch
 
