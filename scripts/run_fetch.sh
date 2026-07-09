@@ -145,7 +145,7 @@ echo "[run_fetch] ${REGION}: ${JOB_COUNT} jobs, max-concurrent=${MAX_CONCURRENT}
 
 # ── Dispatch with xargs -P ────────────────────────────────────────────
 
-xargs -P "$MAX_CONCURRENT" -L 1 -I {} bash -c '_run_job "$@"' _ {} < "$JOB_FILE"
+xargs -d '\n' -P "$MAX_CONCURRENT" -I {} bash -c '_run_job "$@"' _ {} < "$JOB_FILE"
 
 # Cleanup
 rm -f "$JOB_FILE"
