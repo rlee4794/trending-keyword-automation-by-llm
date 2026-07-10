@@ -1,5 +1,5 @@
 ---
-name: hk-fnb-trending
+name: fnb-trending-by-social-listening
 description: >
   HK + TW F&B social media trending keyword pipeline.
   Fetches Instagram/Threads/Google Trends via Apify, filters by engagement,
@@ -25,7 +25,7 @@ No Threads for Taiwan.
 
 ## Prerequisites
 
-All commands must be run from the skill directory (`~/.agents/skills/hk-fnb-trending/`).
+All commands must be run from the skill directory (`~/.agents/skills/fnb-trending-by-social-listening/`).
 
 | Dependency | Version / Notes |
 |------------|-----------------|
@@ -207,7 +207,7 @@ lower thresholds. Start conservative and widen if needed.
 ## Procedure
 
 All commands below assume the working directory is the skill root
-(`~/.agents/skills/hk-fnb-trending/`).
+(`~/.agents/skills/fnb-trending-by-social-listening/`).
 
 ### Step 1 — Fetch
 
