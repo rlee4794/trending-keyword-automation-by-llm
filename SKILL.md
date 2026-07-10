@@ -38,6 +38,13 @@ All commands must be run from the skill directory (`~/.agents/skills/fnb-trendin
 
 `runs/` is a symlink → ArkDrive personal space for persistent output storage.
 
+### ⚠️ Date Convention
+
+> All pipeline runs operate on **yesterday's data** by default.
+> - "跑今天的 pipeline" / "run today's pipeline" → data folder is `runs/YYYY-MM-DD/` where `YYYY-MM-DD` = yesterday
+> - This applies regardless of which step you start from (Step 1, Step 2, partial rerun, etc.)
+> - Only override when user explicitly specifies a date like "跑 7 月 8 號嘅 pipeline"
+
 ## Quick Reference
 
 | User says | Action |
@@ -78,8 +85,8 @@ Do NOT run Step T automatically after a regular pipeline run.
 
 ### ⚠️ Already-run rule
 
-If today's pipeline has **already completed** (i.e. `daily_trending_{REGION}.json` exists
-and was generated today), and the user asks about trends **without** explicitly
+If today's pipeline run has **already completed** (i.e. `daily_trending_{REGION}.json` for
+**yesterday's date** exists and was generated today), and the user asks about trends **without** explicitly
 requesting a re-run (e.g. just "run trending pipeline" / "有什麼trends" /
 "今日有咩趨勢"), do NOT re-execute the pipeline. Instead, read the existing
 `daily_trending_{REGION}.json` and present the results directly:
@@ -219,9 +226,7 @@ to respect Apify's 32-actor concurrent limit. Default max-concurrent is 30.
 **Taiwan:** 57 actors (1 Google + 56 IG users)
 
 ```bash
-**⚠️ Always use yesterday's date (`date -d "yesterday"`) unless the user explicitly specifies a different date.**
-
-# Determine date (default: yesterday)
+# Determine date (default: yesterday — see Date Convention above)
 TARGET_DATE=$(date -d "yesterday" +%Y-%m-%d)
 
 # Fetch data with concurrency control
