@@ -25,6 +25,7 @@ def filter_records(
     records: list[dict],
     min_likes: int,
     min_shares: int,
+    mode: str = "or",
 ) -> tuple[list[dict], int, int]:
     """Filter records by engagement threshold. Returns (kept, total, skipped)."""
     kept = []
@@ -35,8 +36,12 @@ def filter_records(
 
         if min_likes == 0 and min_shares == 0:
             kept.append(r)
-        elif likes >= min_likes and shares >= min_shares:
-            kept.append(r)
+        elif mode == "and":
+            if likes >= min_likes and shares >= min_shares:
+                kept.append(r)
+        else:
+            if likes >= min_likes or shares >= min_shares:
+                kept.append(r)
 
     return kept, len(records), len(records) - len(kept)
 
@@ -64,9 +69,10 @@ def _process_region(region: str, date_str: str, thresholds: dict) -> dict:
             ig_data.get("records", []),
             ig_cfg.get("min_likes", 1000),
             ig_cfg.get("min_shares", 500),
+            ig_cfg.get("mode", "or"),
         )
         print(f"[{region}] Instagram: {len(ig_posts)}/{ig_total} posts passed threshold "
-              f"(like≥{ig_cfg.get('min_likes')}, share≥{ig_cfg.get('min_shares')})",
+              f"(like≥{ig_cfg.get('min_likes')}, share≥{ig_cfg.get('min_shares')}, mode={ig_cfg.get('mode', 'or')})",
               file=sys.stderr)
 
     # ── Threads (HK only) ───────────────────────────────────────────
@@ -83,8 +89,10 @@ def _process_region(region: str, date_str: str, thresholds: dict) -> dict:
                 threads_data.get("records", []),
                 th_cfg.get("min_likes", 1000),
                 th_cfg.get("min_shares", 500),
+                th_cfg.get("mode", "or"),
             )
-            print(f"[{region}] Threads: {len(threads_posts)}/{threads_total} posts passed threshold",
+            print(f"[{region}] Threads: {len(threads_posts)}/{threads_total} posts passed threshold "
+                  f"(like≥{th_cfg.get('min_likes')}, share≥{th_cfg.get('min_shares')}, mode={th_cfg.get('mode', 'or')})",
                   file=sys.stderr)
 
     # ── Google ──────────────────────────────────────────────────────

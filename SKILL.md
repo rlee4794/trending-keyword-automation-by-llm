@@ -109,7 +109,7 @@ requesting a re-run (e.g. just "run trending pipeline" / "有什麼trends" /
 
 ```
 Step 1: Fetch    → run_fetch.sh (xargs -P 30) → normalize_raw.py
-Step 2: Filter   → filter_threshold.py (like>threshold AND share>threshold)
+Step 2: Filter   → filter_threshold.py (like OR share ≥ threshold, mode configurable)
 Step 3: Extract  → Agent reads filtered posts + Google Trends → extracts keywords
 Step 4: Assemble → assemble_output.py → daily_trending_{REGION}.json
 Step 5: Summary  → Present daily results in chat
@@ -133,8 +133,8 @@ Each file is self-contained per region — no cross-region merging.
   "region": "hk",
   "generated_at": "2026-07-07T10:00:00+08:00",
   "threshold": {
-    "instagram": { "min_likes": 1000, "min_shares": 500 },
-    "threads": { "min_likes": 1000, "min_shares": 500 }
+    "instagram": { "min_likes": 1000, "min_shares": 500, "mode": "or" },
+    "threads": { "min_likes": 1000, "min_shares": 500, "mode": "or" }
   },
   "posts": [
     {
@@ -197,8 +197,8 @@ Threshold defaults:
 
 ```json
 {
-  "instagram": { "min_likes": 1000, "min_shares": 500 },
-  "threads": { "min_likes": 1000, "min_shares": 500 },
+  "instagram": { "min_likes": 1000, "min_shares": 500, "mode": "or" },
+  "threads": { "min_likes": 1000, "min_shares": 500, "mode": "or" },
   "google": { "min_volume": 0 }
 }
 ```

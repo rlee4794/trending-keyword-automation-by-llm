@@ -1,11 +1,13 @@
 {
   "instagram": {
     "min_likes": 1000,
-    "min_shares": 500
+    "min_shares": 500,
+    "mode": "or"
   },
   "threads": {
     "min_likes": 1000,
-    "min_shares": 500
+    "min_shares": 500,
+    "mode": "or"
   },
   "google": {
     "min_volume": 0
