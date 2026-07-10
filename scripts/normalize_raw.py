@@ -124,6 +124,24 @@ def _engagement_tier(likes: int, comments: int) -> str:
     return "low"
 
 
+def _merge_source_kind(existing: dict[str, Any], new_kind: str) -> None:
+    """Merge a new source_kind into an existing record's source_kind list.
+
+    On first merge, converts the existing scalar source_kind into a list.
+    Subsequent merges append to the list, avoiding duplicates.
+    """
+    old = existing.get("source_kind", "")
+    if isinstance(old, list):
+        kinds = old
+    elif old:
+        kinds = [old]
+    else:
+        kinds = []
+    if new_kind and new_kind not in kinds:
+        kinds.append(new_kind)
+    existing["source_kind"] = kinds
+
+
 def _compute_windows(target_date_str: str) -> dict[str, str]:
     """Compute current and previous weekly windows from target date."""
     target_dt = datetime.strptime(target_date_str, "%Y-%m-%d").replace(tzinfo=HKT)
@@ -367,7 +385,9 @@ def _process_region(
 
         all_records: list[dict[str, Any]] = []
         dedup_skipped = 0
+        dedup_merged = 0
         age_skipped = 0
+        url_index: dict[str, int] = {}  # URL -> index in all_records for in-run source_kind merge
 
         # HK hashtag posts
         for ig_file in ig_hashtag_files:
@@ -388,7 +408,13 @@ def _process_region(
                 if url and url in seen_urls:
                     dedup_skipped += 1
                     continue
+                if url and url in url_index:
+                    _merge_source_kind(all_records[url_index[url]], rec.get("source_kind", ""))
+                    dedup_merged += 1
+                    continue
                 all_records.append(rec)
+                if url:
+                    url_index[url] = len(all_records) - 1
 
         # HK user posts
         for ig_file in ig_user_files:
@@ -409,7 +435,13 @@ def _process_region(
                 if url and url in seen_urls:
                     dedup_skipped += 1
                     continue
+                if url and url in url_index:
+                    _merge_source_kind(all_records[url_index[url]], rec.get("source_kind", ""))
+                    dedup_merged += 1
+                    continue
                 all_records.append(rec)
+                if url:
+                    url_index[url] = len(all_records) - 1
 
         # TW user posts
         tw_user_count = 0
@@ -431,10 +463,16 @@ def _process_region(
                 if url and url in seen_urls:
                     dedup_skipped += 1
                     continue
+                if url and url in url_index:
+                    _merge_source_kind(all_records[url_index[url]], rec.get("source_kind", ""))
+                    dedup_merged += 1
+                    continue
                 all_records.append(rec)
+                if url:
+                    url_index[url] = len(all_records) - 1
                 tw_user_count += 1
 
-        total_before = len(all_records) + dedup_skipped + age_skipped
+        total_before = len(all_records) + dedup_skipped + dedup_merged + age_skipped
 
         instagram_output = {
             "platform": "instagram",
@@ -459,7 +497,8 @@ def _process_region(
         )
         age_msg = f", {age_skipped} age-skipped" if age_skipped > 0 else ""
         tw_msg = f", {tw_user_count} from TW users" if tw_user_count > 0 else ""
-        print(f"{region} instagram: {len(all_records)} records kept, {dedup_skipped} dedup-skipped{age_msg}{tw_msg} (from {total_before} total)")
+        dedup_merge_msg = f", {dedup_merged} dedup-merged" if dedup_merged > 0 else ""
+        print(f"{region} instagram: {len(all_records)} records kept, {dedup_skipped} dedup-skipped{dedup_merge_msg}{age_msg}{tw_msg} (from {total_before} total)")
     else:
         print(f"{region} instagram: SKIPPED (no _apify data)")
 
