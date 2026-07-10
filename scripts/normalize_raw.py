@@ -323,6 +323,7 @@ def _process_region(
     config: dict[str, Any],
     windows: dict[str, str],
     max_age_days: int,
+    crossday_dedup: bool = True,
 ) -> None:
     """Process one region's Apify data → normalized raw JSON.
 
@@ -380,8 +381,12 @@ def _process_region(
             age_cutoff = scrape_dt - timedelta(days=max_age_days)
             print(f"{region} instagram: age filter enabled, discarding posts older than {age_cutoff.isoformat()}", file=sys.stderr)
 
-        seen_urls = _load_seen_urls(run_dir, region, lookback_days=6)
-        print(f"{region} instagram: {len(seen_urls)} seen URLs from previous days", file=sys.stderr)
+        if crossday_dedup:
+            seen_urls = _load_seen_urls(run_dir, region, lookback_days=6)
+            print(f"{region} instagram: {len(seen_urls)} seen URLs from previous days", file=sys.stderr)
+        else:
+            seen_urls = set()
+            print(f"{region} instagram: cross-day dedup DISABLED", file=sys.stderr)
 
         all_records: list[dict[str, Any]] = []
         dedup_skipped = 0
@@ -519,8 +524,12 @@ def _process_region(
             threads_age_cutoff = scrape_dt - timedelta(days=max_age_days)
             print(f"threads: age filter enabled, discarding posts older than {threads_age_cutoff.isoformat()}", file=sys.stderr)
 
-        seen_threads_urls = _load_seen_threads_urls(run_dir, lookback_days=6)
-        print(f"threads: {len(seen_threads_urls)} seen URLs from previous days", file=sys.stderr)
+        if crossday_dedup:
+            seen_threads_urls = _load_seen_threads_urls(run_dir, lookback_days=6)
+            print(f"threads: {len(seen_threads_urls)} seen URLs from previous days", file=sys.stderr)
+        else:
+            seen_threads_urls = set()
+            print(f"threads: cross-day dedup DISABLED", file=sys.stderr)
 
         all_threads: list[dict[str, Any]] = []
         threads_age_skipped = 0
@@ -579,12 +588,15 @@ def main() -> None:
     parser.add_argument("--region", choices=["hk", "tw"], help="Process only this region (default: both)")
     parser.add_argument("--max-age-days", type=int, default=30,
                         help="Discard Instagram posts older than N days (default: 30, 0 = disable)")
+    parser.add_argument("--no-crossday-dedup", action="store_true",
+                        help="Disable cross-day URL dedup (in-run source_kind merge still active)")
     args = parser.parse_args()
 
     run_dir = Path(args.run_dir)
     config_path = Path(args.config)
     target_date = args.date
     max_age_days = args.max_age_days
+    crossday_dedup = not args.no_crossday_dedup
 
     if not config_path.exists():
         print(f"ERROR: Config not found: {config_path}", file=sys.stderr)
@@ -597,7 +609,7 @@ def main() -> None:
     regions_to_process = [args.region] if args.region else ["hk", "tw"]
 
     for region in regions_to_process:
-        _process_region(region, run_dir, config, windows, max_age_days)
+        _process_region(region, run_dir, config, windows, max_age_days, crossday_dedup)
 
 
 if __name__ == "__main__":
