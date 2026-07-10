@@ -34,7 +34,7 @@ Three steps:
     {
       "platform": "instagram",
       "likes": 3200,
-      "caption_snippet": "北角呢間隱世串燒店嘅沙嗲拼盤...",
+      "caption": "北角呢間隱世串燒店嘅沙嗲拼盤...",
       "extracted": { "dishes": ["沙嗲拼盤"], "venues": ["北角串燒店"] }
     }
   ],

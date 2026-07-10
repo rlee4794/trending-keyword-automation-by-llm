@@ -97,7 +97,7 @@ requesting a re-run (e.g. just "run trending pipeline" / "有什麼trends" /
    - 🍽️ 熱門菜系（按 post_count 排序，最多 10 個）
    - 🔍 Google 熱搜（按 volume 排序，最多 10 個，只列 F&B 相關）
 2. **Short background** — for each keyword in 🔥 Social 熱門菜式 and 📍 Social 熱門餐廳,
-   include a one-line context from `caption_snippet` or source info.
+   include a one-line context from `caption` or source info.
    🍽️ 熱門菜系 and 🔍 Google 熱搜 do NOT need background.
    For example:
    - 梅菜扣肉飯 — 源自 7-11 聯乘貼文，兩日內累積 67K likes
@@ -147,7 +147,7 @@ Each file is self-contained per region — no cross-region merging.
       "comments": 85,
       "shares": 1200,
       "taken_at": "2026-07-06T18:20:00+08:00",
-      "caption_snippet": "北角呢間隱世串燒店嘅沙嗲拼盤真係...",
+      "caption": "北角呢間隱世串燒店嘅沙嗲拼盤真係...",
       "hashtags": ["香港美食", "北角美食", "串燒", "沙嗲"],
       "extracted": {
         "dishes": ["沙嗲拼盤", "燒蠔"],
@@ -251,7 +251,7 @@ If 0 posts pass the threshold, warn and consider lowering thresholds in `config/
 ### Step 3 — Extract Keywords (Agent)
 
 Read `filtered/{region}/threshold_filtered.json`. The agent examines each post's
-`caption_snippet` and `hashtags`, plus `google_trends` terms.
+`caption` and `hashtags`, plus `google_trends` terms.
 
 #### Extraction Prompt
 
@@ -457,7 +457,7 @@ Full data: runs/YYYY-MM-DD/daily_trending_HK.json
 
 #### Background extraction rules
 
-For each keyword's background, infer from the associated posts' `caption_snippet`
+For each keyword's background, infer from the associated posts' `caption`
 and `source` fields. Keep it to one short line:
 - **Dishes**: mention the source context (聯乘/新開/限時/傳統) and notable platform
 - **Venues**: mention location/type (連鎖/新開/地區) and what they're known for

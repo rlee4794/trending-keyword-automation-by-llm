@@ -119,7 +119,7 @@ def _process_region(region: str, date_str: str, thresholds: dict) -> dict:
             "comments": rp.get("comments", 0) or 0,
             "shares": rp.get("reshare_count", 0) or 0,
             "taken_at": rp.get("taken_at_timestamp", ""),
-            "caption_snippet": rp.get("caption_snippet", "")[:500],
+            "caption": rp.get("caption", ""),
             "hashtags": rp.get("hashtags", []),
         })
 
@@ -135,7 +135,7 @@ def _process_region(region: str, date_str: str, thresholds: dict) -> dict:
             "comments": rp.get("comments", 0) or 0,
             "shares": rp.get("reshare_count", 0) or 0,
             "taken_at": rp.get("taken_at_timestamp", ""),
-            "caption_snippet": rp.get("caption_snippet", "")[:500],
+            "caption": rp.get("caption", ""),
             "hashtags": rp.get("hashtags", []),
         })
 
