@@ -108,7 +108,7 @@ def _guard_extraction(posts: list[dict]) -> tuple[int, int]:
         if not ext:
             continue
 
-        caption = p.get("caption", "")
+        caption = p.get("caption_snippet", "")
 
         venues = ext.get("venues", [])
         if venues:
@@ -150,7 +150,7 @@ def _guard_keywords(keywords: list[dict], posts: list[dict]) -> tuple[list[dict]
             in_context = False
             for i in kw.get("post_indices", []):
                 if i < len(posts):
-                    caption = posts[i].get("caption", "")
+                    caption = posts[i].get("caption_snippet", "")
                     if _is_in_location_context(term, caption):
                         in_context = True
                         break
@@ -217,7 +217,7 @@ def run(date_str: str, region: str, extraction: dict) -> None:
     if geo_dropped > 0:
         print(f"🌍  GEO FILTER: {geo_dropped} post(s) filtered (geo_by_content != {expected_geo})", file=sys.stderr)
         for p in geo_filtered:
-            cap = (p.get("caption", "") or "")[:80]
+            cap = (p.get("caption_snippet", "") or "")[:80]
             print(f"   ↳ geo_by_content={p.get('geo_by_content')} | {cap}...", file=sys.stderr)
     posts = [p for p in posts if not p.get("_filtered_reason")]
 
