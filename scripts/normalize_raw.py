@@ -479,6 +479,39 @@ def _process_region(
 
         total_before = len(all_records) + dedup_skipped + dedup_merged + age_skipped
 
+        # ── Data quality check ────────────────────────────────────
+        dq_cfg = config.get("data_quality", {}).get("instagram", {})
+        if dq_cfg:
+            min_total = dq_cfg.get("min_total_records", {}).get(region)
+            min_valid_ratio = dq_cfg.get("min_valid_ratio")
+            if min_total is not None and total_before < min_total:
+                msg = (
+                    f"[DQ ABORT] {region} instagram: total_before={total_before} "
+                    f"< min_total_records={min_total}. "
+                    f"Apify scraper likely returned incomplete data — "
+                    f"re-run Step 1 (fetch) before retrying the pipeline."
+                )
+                print(msg, file=sys.stderr)
+                sys.exit(1)
+            if min_valid_ratio is not None:
+                # valid = has caption AND has likes>0
+                valid_count = sum(
+                    1 for r in all_records
+                    if (r.get("raw_payload") or {}).get("caption", "")
+                    and (r.get("raw_payload") or {}).get("likes", 0) > 0
+                )
+                ratio = valid_count / total_before if total_before > 0 else 0
+                if ratio < min_valid_ratio:
+                    msg = (
+                        f"[DQ ABORT] {region} instagram: valid_ratio={ratio:.2f} "
+                        f"< min_valid_ratio={min_valid_ratio} "
+                        f"({valid_count}/{total_before} records have caption+lkes>0). "
+                        f"Apify scraper likely returned empty-shell records — "
+                        f"re-run Step 1 (fetch) before retrying the pipeline."
+                    )
+                    print(msg, file=sys.stderr)
+                    sys.exit(1)
+
         instagram_output = {
             "platform": "instagram",
             "region": region,

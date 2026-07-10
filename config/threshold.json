@@ -11,5 +11,14 @@
   },
   "google": {
     "min_volume": 0
+  },
+  "data_quality": {
+    "instagram": {
+      "min_total_records": {
+        "hk": 300,
+        "tw": 200
+      },
+      "min_valid_ratio": 0.5
+    }
   }
 }
