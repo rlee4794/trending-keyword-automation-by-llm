@@ -281,6 +281,15 @@ For each post below, extract:
 3. **Cuisines** (次要) — cuisine types or food categories: 日本菜, 泰國菜, 川菜,
    dim sum, ramen, omakase, 放題, 茶餐廳, 打邊爐, 燒烤.
 
+4. **geo_by_content** (必須) — where the food/venue is physically located:
+   - `"HK"`: clearly Hong Kong (香港地名、港式用語、香港分店、$HKD 標價)
+   - `"TW"`: clearly Taiwan (台灣地名如一中街/逢甲/西門町、台灣手機格式 09xx-xxx-xxx、
+     台灣分店命名如XX店/XX分店、台幣 NT$ 標價、台灣特有品牌)
+   - `null`: cannot determine, or not HK/TW (e.g. 韓國/日本/泰國餐廳介紹)
+
+   If a post mentions both regions (e.g. "香港人去台北食XXX"),
+   classify by where the FOOD is served, not the author's location.
+
 **DO NOT extract:**
 - Single characters as venues or dishes — minimum 2 characters required.
   A single Chinese character is almost never a restaurant name or dish.
@@ -331,13 +340,15 @@ Return ONLY JSON. No markdown, no explanation.
       "index": 0,
       "dishes": ["沙嗲拼盤", "燒蠔"],
       "venues": ["北角串燒店"],
-      "cuisines": ["串燒"]
+      "cuisines": ["串燒"],
+      "geo_by_content": "HK"
     },
     {
       "index": 1,
       "dishes": [],
       "venues": ["壽司郎"],
-      "cuisines": ["日本菜"]
+      "cuisines": ["日本菜"],
+      "geo_by_content": "HK"
     }
   ],
   "keywords": [
@@ -362,6 +373,7 @@ Return ONLY JSON. No markdown, no explanation.
 
 Rules:
 - `dishes`, `venues`, `cuisines` arrays — empty `[]` if nothing found
+- `geo_by_content` — `"HK"`, `"TW"`, or `null` for each post
 - `keywords[].post_indices` — which posts mention this keyword (0-based)
 - `keywords[].type` — "dish", "venue", or "cuisine"
 - Google Trends terms: only include if they are **specific F&B proper nouns** — named dishes (至尊漢堡, 大家樂冬瓜盅), named venues (富臨漁港), or named brands (McGriddles, McDonald). Omit generic category words (套餐, 麵包, 榴槤), supermarket/retail names (百佳超級市場), and non-F&B terms entirely. Included terms get `post_indices: []`

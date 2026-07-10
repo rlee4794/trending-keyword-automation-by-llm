@@ -201,6 +201,25 @@ def run(date_str: str, region: str, extraction: dict) -> None:
                 "venues": pe.get("venues", []),
                 "cuisines": pe.get("cuisines", []),
             }
+            if pe.get("geo_by_content") is not None:
+                posts[idx]["geo_by_content"] = pe["geo_by_content"]
+
+    # ── Step 1.5: Filter geo_mismatch posts ─────────────────────────
+    expected_geo = region.upper()  # "HK" or "TW"
+    geo_filtered: list[dict] = []
+    geo_dropped = 0
+    for p in posts:
+        gbc = p.get("geo_by_content")
+        if gbc is not None and gbc != expected_geo:
+            p["_filtered_reason"] = f"geo_mismatch: expected={expected_geo}, content={gbc}"
+            geo_filtered.append(p)
+            geo_dropped += 1
+    if geo_dropped > 0:
+        print(f"🌍  GEO FILTER: {geo_dropped} post(s) filtered (geo_by_content != {expected_geo})", file=sys.stderr)
+        for p in geo_filtered:
+            cap = (p.get("caption_snippet", "") or "")[:80]
+            print(f"   ↳ geo_by_content={p.get('geo_by_content')} | {cap}...", file=sys.stderr)
+    posts = [p for p in posts if not p.get("_filtered_reason")]
 
     # ── Step 2: Post-processing guards ──────────────────────────────
     venue_dropped, dish_dropped = _guard_extraction(posts)
