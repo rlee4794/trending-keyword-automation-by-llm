@@ -7,8 +7,10 @@ description: >
   Triggered by any mention of food trends, trending keywords, pipeline
   execution, or trend analysis for Hong Kong/Taiwan F&B.
   Also handles read-only queries like "今日有咩trends" or "show trends for YYYY-MM-DD".
+  Also handles luxury dining analysis (Step L) — "貴價食材" / "luxury dining".
   Trigger keywords: "run trending pipeline", "hk food trends", "跑趨勢關鍵字",
-  "今日有咩trends", "food trends", "trend analysis", "compare trends", "走勢", "變動".
+  "今日有咩trends", "food trends", "trend analysis", "compare trends", "走勢", "變動",
+  "luxury analysis", "貴價食材", "高端餐飲", "luxury dining".
 ---
 
 # HK F&B Trending Keyword Pipeline
@@ -54,6 +56,7 @@ All commands must be run from the skill directory (`~/.agents/skills/fnb-trendin
 | "run TW pipeline" / "行台灣pipeline" / "行TW" | Full run — **Taiwan only, defaults to yesterday** (IG users + Google Trends TW) |
 | "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending_HK.json or daily_trending_TW.json` → present Top 10 by category with background |
 | "trend analysis" / "compare trends" / "變動" / "走勢" | Run **Step T** (7-day snapshot comparison, on-demand) |
+| "luxury analysis" / "貴價食材" / "高端餐飲" / "luxury dining" | Run **Step L** (luxury dining signal extraction, on-demand) |
 
 ### ⚠️ Output format rule
 
@@ -74,14 +77,19 @@ When the user says "run trending pipeline" **without** specifying a region,
 
 When the user specifies TW, run **Taiwan only** (skip HK Google/IG hashtags/Threads).
 
-### ⚠️ Step T (trend analysis) is on-demand only
+### ⚠️ Step T & Step L are on-demand only
 
-Step T (trend comparison / 變動分析) is **NOT part of the daily pipeline**.
-Only run it when the user explicitly asks for:
+Step T (trend comparison) and Step L (luxury dining extraction) are **NOT part of the daily pipeline**.
+
+**Step T** — only when user explicitly asks for:
 - "trend analysis" / "compare trends" / "走勢" / "變動" / "compared to last week"
 - Any phrase that implies comparing today vs historical data
 
-Do NOT run Step T automatically after a regular pipeline run.
+**Step L** — only when user explicitly asks for:
+- "luxury analysis" / "貴價食材" / "高端餐飲" / "luxury dining" / "有咩貴嘢食"
+- Any phrase about premium ingredients, fine dining, or high-end food trends
+
+Do NOT run Step T or Step L automatically after a regular pipeline run.
 
 ### ⚠️ Already-run rule
 
@@ -118,6 +126,9 @@ Step 5: Summary  → Present daily results in chat
 
 Step T: Trends  → trend_comparison.py (prepare) → Agent (fuzzy match) →
                   trend_comparison.py (merge) → daily_trending_{REGION}.json enriched
+
+Step L: Luxury  → luxury_extract.py (format prompt) → Agent (semantic extraction) →
+                  manual merge → daily_trending_{REGION}.json enriched with luxury_insights
 ```
 
 ## Output Schema
@@ -623,3 +634,91 @@ Keywords without a trend signal get no `trend` field.
 After merging, highlight trend signals in chat:
 - 🆕 **New**: first appeared in the last 7 days
 - 🔥 **Surging**: post_count up ≥50% vs 7 days ago
+
+---
+
+## Step L — Luxury Dining Extraction (on-demand)
+
+Extract luxury / premium dining signals from today's trending keywords and posts.
+LLM reads the full `daily_trending_{REGION}.json` (keywords + posts) and uses
+**semantic judgment** to identify luxury ingredients, premium formats, and
+high-end dining experiences. No lexicon — the LLM decides what qualifies.
+
+### Trigger
+
+Only when user explicitly asks for:
+- "luxury analysis" / "貴價食材" / "高端餐飲" / "luxury dining" / "有咩貴嘢食"
+- Any phrase about premium ingredients, fine dining, or high-end food trends
+
+### Step La — Format Prompt
+
+```bash
+python3 scripts/luxury_extract.py --date YYYY-MM-DD --region hk --output /tmp/luxury_prompt.txt
+```
+
+This formats `daily_trending_{REGION}.json` keywords + posts into a structured text
+prompt the Agent reads for extraction.
+
+### Step Lb — Agent Extraction
+
+Agent reads `/tmp/luxury_prompt.txt` and extracts:
+
+1. **Top 10 luxury keywords** — ranked by engagement (likes), with:
+   - `term`: the dish/ingredient/format name
+   - `type`: dish / cuisine / venue / experience
+   - `key_signal`: what makes it luxury (e.g. "A4和牛+雪糕壽喜燒")
+   - `post_count`, `likes`
+2. **Signal distribution** — aggregated by category (e.g. 🦞 龍蝦, 🥩 和牛, 🍷 魚子醬)
+   with representative keywords per category
+3. **Summary** — high-level trend narrative
+
+### Judgment Framework
+
+LLM should consider a keyword luxury if it involves:
+
+| Signal | Examples |
+|--------|---------|
+| **貴價食材** | 魚子醬、鵝肝、和牛、龍蝦、鮑魚、海膽、松露、花膠、燕窩、西班牙黑豚、貓山王榴槤 |
+| **精緻料理形式** | Omakase、割烹、懷石料理、Fine Dining、米芝蓮星級、預約制限定 |
+| **溢價體驗** | 人均 $500+、名人飯堂、聯乘限定、過江龍名店、星級名廚客座 |
+
+Exclude: 連鎖快餐、茶餐廳日常、放題/任食（除非主打貴價食材如榴槤放題）、街頭小食。
+
+### Output Format
+
+Agent outputs JSON:
+
+```json
+{
+  "top_keywords": [
+    {"rank": 1, "term": "龍蝦", "type": "dish",
+     "key_signal": "鐵板燒$888+預約制龍蝦湯拉麵",
+     "post_count": 9, "likes": 22300}
+  ],
+  "signal_distribution": {
+    "🦞 龍蝦": {"count": 2, "representatives": ["龍蝦", "龍蝦汁海膽闊麵"]}
+  },
+  "summary": {
+    "luxury_signal_count": 15,
+    "top_trend": "..."
+  }
+}
+```
+
+### Step Lc — Merge
+
+Manually merge the Agent's JSON into `daily_trending_{REGION}.json`:
+
+```python
+# daily["luxury_insights"] = agent_output
+```
+
+This adds a `luxury_insights` field to the daily trending file.
+
+### Present Luxury Summary
+
+Show in chat as markdown tables:
+
+- **Top 10 luxury keywords** table: rank, term, type, key_signal, posts, likes
+- **Signal distribution** table: category, count, representatives
+- **Summary** prose: top trend + notable observations
