@@ -231,7 +231,7 @@ def _normalise_instagram_posts(
                 "hashtags": item.get("hashtags", []),
                 "url": item.get("url"),
                 "reshare_count": item.get("reshare_count"),
-                "caption_snippet": caption[:500] if caption else "",
+                "caption_snippet": caption[:1000] if caption else "",
             },
         })
     return records
@@ -268,7 +268,7 @@ def _normalise_instagram_user_posts(
                 "hashtags": item.get("hashtags", []),
                 "url": item.get("url"),
                 "reshare_count": item.get("reshare_count"),
-                "caption_snippet": caption[:500] if caption else "",
+                "caption_snippet": caption[:1000] if caption else "",
                 "source_username": username,
             },
         })
@@ -302,7 +302,7 @@ def _normalise_threads_posts(
                 "taken_at_timestamp": _normalise_timestamp(item.get("created_at")),
                 "hashtags": item.get("hashtags", []),
                 "url": item.get("post_url", ""),
-                "caption_snippet": text[:500] if text else "",
+                "caption_snippet": text[:1000] if text else "",
                 "search_keyword": item.get("search_keyword"),
                 "search_filter": item.get("search_filter"),
                 "username": item.get("username"),
