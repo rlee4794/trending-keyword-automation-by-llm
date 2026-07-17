@@ -621,15 +621,15 @@ def main() -> None:
     parser.add_argument("--region", choices=["hk", "tw"], help="Process only this region (default: both)")
     parser.add_argument("--max-age-days", type=int, default=30,
                         help="Discard Instagram posts older than N days (default: 30, 0 = disable)")
-    parser.add_argument("--no-crossday-dedup", action="store_true",
-                        help="Disable cross-day URL dedup (in-run source_kind merge still active)")
+    parser.add_argument("--crossday-dedup", action="store_true",
+                        help="Enable cross-day URL dedup (look back 6 days, in-run source_kind merge always active)")
     args = parser.parse_args()
 
     run_dir = Path(args.run_dir)
     config_path = Path(args.config)
     target_date = args.date
     max_age_days = args.max_age_days
-    crossday_dedup = not args.no_crossday_dedup
+    crossday_dedup = args.crossday_dedup
 
     if not config_path.exists():
         print(f"ERROR: Config not found: {config_path}", file=sys.stderr)

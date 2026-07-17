@@ -19,3 +19,4 @@ Thumbs.db
 
 # Symlink (runs is on ArkDrive)
 runs
+.env.apify

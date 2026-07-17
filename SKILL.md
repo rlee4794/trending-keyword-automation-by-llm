@@ -52,7 +52,7 @@ All commands must be run from the skill directory (`~/.agents/skills/fnb-trendin
 | User says | Action |
 |-----------|--------|
 | "run trending pipeline" / "行trending pipeline" | Full run — **HK only, defaults to yesterday** (Steps 1-4 + Summary) |
-| "run trending pipeline --no-crossday-dedup" | Full run — HK only, **skip 6-day cross-day URL dedup** (keep all posts regardless of previous days) |
+| "run trending pipeline --crossday-dedup" | Full run — HK only, **enable 6-day cross-day URL dedup** (remove posts that appeared in previous 6 days) |
 | "run TW pipeline" / "行台灣pipeline" / "行TW" | Full run — **Taiwan only, defaults to yesterday** (IG users + Google Trends TW) |
 | "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending_HK.json or daily_trending_TW.json` → present Top 10 by category with background |
 | "trend analysis" / "compare trends" / "變動" / "走勢" | Run **Step T** (7-day snapshot comparison, on-demand) |
