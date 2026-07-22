@@ -87,6 +87,9 @@ with open('${APIFY_CFG}') as f:
     actors = json.load(f)
 with open('${SOCIAL_CFG}') as f:
     social = json.load(f)
+with open('config/threshold.json') as f:
+    threshold = json.load(f)
+google_enabled = threshold.get('google', {}).get('enabled', True)
 
 region = '${REGION}'
 run_dir = '${RUN_DIR}'
@@ -94,14 +97,17 @@ run_dir = '${RUN_DIR}'
 jobs = []
 
 # --- Google Trends ---
-if region == 'hk':
-    google_cfg = actors['google']
-    input_json = json.dumps(google_cfg['input'])
-    jobs.append((google_cfg['actor_id'], input_json, f'{run_dir}/google_apify_raw.json'))
+if google_enabled:
+    if region == 'hk':
+        google_cfg = actors['google']
+        input_json = json.dumps(google_cfg['input'])
+        jobs.append((google_cfg['actor_id'], input_json, f'{run_dir}/google_apify_raw.json'))
+    else:
+        google_cfg = actors['google_taiwan']
+        input_json = json.dumps(google_cfg['input'])
+        jobs.append((google_cfg['actor_id'], input_json, f'{run_dir}/google_apify_raw.json'))
 else:
-    google_cfg = actors['google_taiwan']
-    input_json = json.dumps(google_cfg['input'])
-    jobs.append((google_cfg['actor_id'], input_json, f'{run_dir}/google_apify_raw.json'))
+    print('google: DISABLED (config/threshold.json → google.enabled=false)', file=sys.stderr)
 
 # --- Instagram hashtags (HK only) ---
 if region == 'hk':

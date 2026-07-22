@@ -200,7 +200,7 @@ Each file is self-contained per region — no cross-region merging.
 
 | File | Purpose |
 |------|---------|
-| `config/threshold.json` | Engagement thresholds, data quality checks, and extraction scope (`extraction_scope`) |
+| `config/threshold.json` | Engagement thresholds, data quality checks, extraction scope (`extraction_scope`), and Google Trends toggle (`google.enabled`) |
 | `config/apify_actors_v1.json` | Apify actor IDs |
 | `config/social_listening_v1.json` | Platform seeds |
 
@@ -210,7 +210,7 @@ Threshold defaults:
 {
   "instagram": { "min_likes": 1000, "min_shares": 500, "mode": "or" },
   "threads": { "min_likes": 1000, "min_shares": 500, "mode": "or" },
-  "google": { "min_volume": 0 },
+  "google": { "_comment": "Set enabled to false to skip Google Trends entirely (fetch, extract, display).", "enabled": true, "min_volume": 0 },
   "extraction_scope": {
     "_comment": "Controls which keyword types are extracted, assembled, and displayed. Set to false to skip entirely.",
     "dishes": true,
@@ -445,7 +445,7 @@ The four possible categories are (each shown only if enabled):
 1. 🔥 Social 熱門菜式 (dishes)
 2. 📍 Social 熱門餐廳 (venues)
 3. 🍽️ 熱門菜系 (cuisines)
-4. 🔍 Google 熱搜 (always shown; not controlled by extraction_scope)
+4. 🔍 Google 熱搜 (controlled by `google.enabled` in threshold config; shown only when enabled)
 
 If a keyword appears on both channels, tag it `🔥🔍` to signal cross-channel heat.
 

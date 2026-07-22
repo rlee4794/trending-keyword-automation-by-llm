@@ -10,6 +10,8 @@
     "mode": "or"
   },
   "google": {
+    "_comment": "Set enabled to false to skip Google Trends entirely (fetch, extract, display).",
+    "enabled": true,
     "min_volume": 0
   },
   "extraction_scope": {
