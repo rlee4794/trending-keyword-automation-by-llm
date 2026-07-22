@@ -200,7 +200,7 @@ Each file is self-contained per region — no cross-region merging.
 
 | File | Purpose |
 |------|---------|
-| `config/threshold.json` | Engagement thresholds per platform |
+| `config/threshold.json` | Engagement thresholds, data quality checks, and extraction scope (`extraction_scope`) |
 | `config/apify_actors_v1.json` | Apify actor IDs |
 | `config/social_listening_v1.json` | Platform seeds |
 
@@ -210,7 +210,13 @@ Threshold defaults:
 {
   "instagram": { "min_likes": 1000, "min_shares": 500, "mode": "or" },
   "threads": { "min_likes": 1000, "min_shares": 500, "mode": "or" },
-  "google": { "min_volume": 0 }
+  "google": { "min_volume": 0 },
+  "extraction_scope": {
+    "_comment": "Controls which keyword types are extracted, assembled, and displayed. Set to false to skip entirely.",
+    "dishes": true,
+    "venues": true,
+    "cuisines": true
+  }
 }
 ```
 
@@ -261,8 +267,13 @@ If 0 posts pass the threshold, warn and consider lowering thresholds in `config/
 
 ### Step 3 — Extract Keywords (Agent)
 
-Read `filtered/{region}/threshold_filtered.json`. The agent examines each post's
-`caption_snippet` and `hashtags`, plus `google_trends` terms.
+Read `filtered/{region}/threshold_filtered.json` and `config/threshold.json`.
+
+**extraction_scope**: Before extracting, check `config/threshold.json` → `extraction_scope`.
+Only extract types whose value is `true`. If `venues: false`, skip all venue extraction
+instructions below and omit the `venues` field from output. Same for `dishes` and `cuisines`.
+
+The agent examines each post's `caption_snippet` and `hashtags`, plus `google_trends` terms.
 
 #### Extraction Prompt
 
@@ -417,18 +428,28 @@ python3 scripts/assemble_output.py --date YYYY-MM-DD --region hk --extraction-fi
 
 The assembly script handles:
 - Merging extraction results into posts
+- **extraction_scope enforcement**: strips disabled fields from posts + filters keywords by disabled types (defense-in-depth, in case LLM still extracted them)
 - Post-processing guards (stripping single-char / common-word false venues)
 - Keyword aggregation with engagement stats
 - Writing `daily_trending_{REGION}.json` + updating `runs/latest` symlink
 
 ### Step 5 — Present Summary
 
-Show a detailed summary in chat. **Always split into four independent groups** —
-social dishes, social venues, cuisines, and Google Trends keywords. Never mix them.
+Show a detailed summary in chat.
+
+**Step 5 follows `extraction_scope` from `config/threshold.json`** — only display
+categories whose corresponding scope key is `true`. For example, if `venues: false`,
+skip the 📍 Social 熱門餐廳 table entirely.
+
+The four possible categories are (each shown only if enabled):
+1. 🔥 Social 熱門菜式 (dishes)
+2. 📍 Social 熱門餐廳 (venues)
+3. 🍽️ 熱門菜系 (cuisines)
+4. 🔍 Google 熱搜 (always shown; not controlled by extraction_scope)
 
 If a keyword appears on both channels, tag it `🔥🔍` to signal cross-channel heat.
 
-**Format: Top 10 per category, with short background for each item.**
+**Format: Top 10 per enabled category, with short background for each item.**
 **Use markdown tables, not bullet lists.**
 
 ```

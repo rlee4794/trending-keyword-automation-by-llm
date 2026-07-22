@@ -12,6 +12,12 @@
   "google": {
     "min_volume": 0
   },
+  "extraction_scope": {
+    "_comment": "Controls which keyword types are extracted (Step 3), assembled (Step 4), and displayed (Step 5). Set to false to skip entirely.",
+    "dishes": true,
+    "venues": true,
+    "cuisines": true
+  },
   "data_quality": {
     "instagram": {
       "min_total_records": {

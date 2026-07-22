@@ -162,6 +162,21 @@ def _guard_keywords(keywords: list[dict], posts: list[dict]) -> tuple[list[dict]
     return valid, dropped
 
 
+def _load_extraction_scope() -> dict[str, bool]:
+    """Load extraction_scope from threshold config, with safe defaults."""
+    config_path = Path("config/threshold.json")
+    defaults = {"dishes": True, "venues": True, "cuisines": True}
+    if not config_path.exists():
+        return defaults
+    try:
+        with config_path.open(encoding="utf-8") as f:
+            cfg = json.load(f)
+        scope = cfg.get("extraction_scope", {})
+        return {k: bool(scope.get(k, defaults[k])) for k in defaults}
+    except Exception:
+        return defaults
+
+
 def _load_filtered(date_str: str, region: str) -> tuple[list[dict], list[dict], dict]:
     """Load filtered data for one region.
 
@@ -188,6 +203,13 @@ def run(date_str: str, region: str, extraction: dict) -> None:
     region_label = REGION_LABEL.get(region, region.upper())
     posts, google_terms, thresholds = _load_filtered(date_str, region)
 
+    # ── Load extraction scope ───────────────────────────────────────
+    scope = _load_extraction_scope()
+    scope_types = [k for k, v in scope.items() if v]
+    disabled_types = [k for k, v in scope.items() if not v]
+    if disabled_types:
+        print(f"📐  SCOPE: disabled types → {disabled_types}", file=sys.stderr)
+
     if not posts and not google_terms:
         print(f"ERROR: no filtered data for region '{region}'", file=sys.stderr)
         sys.exit(1)
@@ -203,6 +225,13 @@ def run(date_str: str, region: str, extraction: dict) -> None:
             }
             if pe.get("geo_by_content") is not None:
                 posts[idx]["geo_by_content"] = pe["geo_by_content"]
+
+    # ── Step 1.1: Strip disabled extraction fields from posts ───────
+    _field_map = {"dishes": "dishes", "venues": "venues", "cuisines": "cuisines"}
+    for p in posts:
+        ext = p.get("extracted", {})
+        for fname in disabled_types:
+            ext.pop(_field_map.get(fname, fname), None)
 
     # ── Step 1.5: Filter geo_mismatch posts ─────────────────────────
     expected_geo = region.upper()  # "HK" or "TW"
@@ -246,6 +275,15 @@ def run(date_str: str, region: str, extraction: dict) -> None:
     keywords, kw_dropped = _guard_keywords(keywords, posts)
     if kw_dropped:
         print(f"🛡️  GUARD: dropped {kw_dropped} invalid keyword(s)", file=sys.stderr)
+
+    # ── Step 4.5: Filter keywords by extraction_scope ───────────────
+    if disabled_types:
+        type_map = {"dishes": "dish", "venues": "venue", "cuisines": "cuisine"}
+        excluded_types = {type_map[t] for t in disabled_types}
+        before = len(keywords)
+        keywords = [kw for kw in keywords if kw.get("type") not in excluded_types]
+        if len(keywords) < before:
+            print(f"📐  SCOPE: filtered {before - len(keywords)} keyword(s) by disabled types", file=sys.stderr)
 
     # ── Step 5: Build keyword aggregates ────────────────────────────
     for kw in keywords:
