@@ -435,7 +435,7 @@ The assembly script handles:
 
 ### Step 5 — Present Summary
 
-Show a detailed summary in chat.
+Show a detailed summary in chat, in two parts.
 
 **Step 5 follows `extraction_scope` from `config/threshold.json`** — only display
 categories whose corresponding scope key is `true`. For example, if `venues: false`,
@@ -448,6 +448,32 @@ The four possible categories are (each shown only if enabled):
 4. 🔍 Google 熱搜 (always shown; not controlled by extraction_scope)
 
 If a keyword appears on both channels, tag it `🔥🔍` to signal cross-channel heat.
+
+#### 5a — 本日要點 (Daily Highlights)
+
+Before the tables, read `daily_trending_{REGION}.json` and cross-reference all
+categories to identify **3–5 key signals** for the day. Output as a compact
+prose block:
+
+```
+### 📊 本日要點
+
+- **{signal label}**：{one-line narrative}（關聯：{comma-separated keywords}）
+- ...
+```
+
+Signal types to look for:
+- **品牌集中爆發** — same brand across multiple posts/categories
+- **品類對戰** — multiple venues competing on same dish/cuisine
+- **新店/新品熱潮** — new opening or product driving a spike
+- **跨平台共振** — same keyword trending on both IG + Google
+- **異常互動** — single post with unusually high likes/shares relative to others
+- **Google 熱搜亮點** — notable search spikes with context (e.g. new store, seasonal)
+
+Each signal is one bullet, one line. Keep it tight — this is a high-level scan,
+not a data dump.
+
+#### 5b — 分類表格 (Category Tables)
 
 **Format: Top 10 per enabled category, with short background for each item.**
 **Use markdown tables, not bullet lists.**
