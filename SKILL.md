@@ -3,14 +3,11 @@ name: fnb-trending-keywords-apify-pipeline
 description: >
   HK + TW F&B social media trending keyword pipeline.
   Fetches Instagram/Threads/Google Trends via Apify, filters by engagement,
-  then LLM extracts dish/venue/cuisine keywords.
-  Triggered by any mention of food trends, trending keywords, pipeline
-  execution, or trend analysis for Hong Kong/Taiwan F&B.
-  Also handles read-only queries like "今日有咩trends" or "show trends for YYYY-MM-DD".
-  Also handles luxury dining analysis (Step L) — "貴價食材" / "luxury dining".
-  Trigger keywords: "run trending pipeline", "hk food trends", "跑趨勢關鍵字",
-  "今日有咩trends", "food trends", "trend analysis", "compare trends", "走勢", "變動",
-  "luxury analysis", "貴價食材", "高端餐飲", "luxury dining".
+  then LLM extracts dish/venue/cuisine keywords. On-demand: trend comparison (Step T),
+  luxury dining (Step L), restaurant discovery with OpenRice (Step R).
+  ONLY triggered when the user explicitly names this skill:
+  "fnb-trending-keywords-apify-pipeline" or "apify-pipeline".
+  Never triggered by general food/trend/dining keywords.
 ---
 
 # HK F&B Trending Keyword Pipeline
@@ -57,6 +54,7 @@ All commands must be run from the skill directory (`~/.agents/skills/fnb-trendin
 | "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending_HK.json or daily_trending_TW.json` → present Top 10 by category with background |
 | "trend analysis" / "compare trends" / "變動" / "走勢" | Run **Step T** (7-day snapshot comparison, on-demand) |
 | "luxury analysis" / "貴價食材" / "高端餐飲" / "luxury dining" | Run **Step L** (luxury dining signal extraction, on-demand) |
+| "搵餐廳" / "餐廳推薦" / "find restaurants" / "有咩餐廳" | Run **Step R** (restaurant discovery via OpenRice, on-demand) |
 
 ### ⚠️ Output format rule
 
@@ -77,9 +75,10 @@ When the user says "run trending pipeline" **without** specifying a region,
 
 When the user specifies TW, run **Taiwan only** (skip HK Google/IG hashtags/Threads).
 
-### ⚠️ Step T & Step L are on-demand only
+### ⚠️ Step T, Step L & Step R are on-demand only
 
-Step T (trend comparison) and Step L (luxury dining extraction) are **NOT part of the daily pipeline**.
+Step T (trend comparison), Step L (luxury dining extraction), and Step R (restaurant discovery)
+are **NOT part of the daily pipeline**.
 
 **Step T** — only when user explicitly asks for:
 - "trend analysis" / "compare trends" / "走勢" / "變動" / "compared to last week"
@@ -89,7 +88,12 @@ Step T (trend comparison) and Step L (luxury dining extraction) are **NOT part o
 - "luxury analysis" / "貴價食材" / "高端餐飲" / "luxury dining" / "有咩貴嘢食"
 - Any phrase about premium ingredients, fine dining, or high-end food trends
 
-Do NOT run Step T or Step L automatically after a regular pipeline run.
+**Step R** — only when user explicitly asks for:
+- "搵餐廳" / "餐廳推薦" / "find restaurants" / "有咩餐廳"
+- Any phrase about discovering restaurants based on trending keywords
+- Requires `daily_trending_{REGION}.json` to exist (pipeline must have run first)
+
+Do NOT run Step T, Step L, or Step R automatically after a regular pipeline run.
 
 ### ⚠️ Already-run rule
 
@@ -129,6 +133,10 @@ Step T: Trends  → trend_comparison.py (prepare) → Agent (fuzzy match) →
 
 Step L: Luxury  → luxury_extract.py (format prompt) → Agent (semantic extraction) →
                   manual merge → daily_trending_{REGION}.json enriched with luxury_insights
+
+Step R: Restaurants → restaurant_discovery.py (prepare) → Agent (concept distillation) →
+                      Agent calls openrice-restaurant-list + openrice-restaurant-detail skills →
+                      restaurant_discovery.py (merge) → daily_trending_{REGION}.json enriched
 ```
 
 ## Output Schema
@@ -210,12 +218,17 @@ Threshold defaults:
 {
   "instagram": { "min_likes": 1000, "min_shares": 500, "mode": "or" },
   "threads": { "min_likes": 1000, "min_shares": 500, "mode": "or" },
-  "google": { "_comment": "Set enabled to false to skip Google Trends entirely (fetch, extract, display).", "enabled": true, "min_volume": 0 },
+  "google": { "_comment": "Set enabled to false to skip Google Trends entirely (fetch, extract, display).", "enabled": false, "min_volume": 0 },
   "extraction_scope": {
     "_comment": "Controls which keyword types are extracted, assembled, and displayed. Set to false to skip entirely.",
     "dishes": true,
-    "venues": true,
-    "cuisines": true
+    "venues": false,
+    "cuisines": false
+  },
+  "restaurant_discovery": {
+    "_comment": "Step R config. max_keywords: how many top dish keywords to search restaurants for. max_restaurants_per_keyword: cap per concept.",
+    "max_keywords": 10,
+    "max_restaurants_per_keyword": 10
   }
 }
 ```
@@ -542,6 +555,10 @@ When presenting Google results:
 | 7-days-ago data unavailable | Skip trend comparison, keywords get no `trend` field |
 | Agent fuzzy match fails or returns invalid JSON | Retry once. If still failing, skip trend merge |
 | Agent uses today's date by mistake | Re-run with yesterday. SKILL.md defaults to `date -d "yesterday"` |
+| daily_trending not found for Step R | Warn: "請先執行 pipeline（行 trending pipeline）再搵餐廳" |
+| OpenRice search returns 0 results for a concept | Skip that concept, note in output |
+| openrice skills unavailable | Last resort: Agent chooses fallback method (BUA / web_fetch / etc.) — only after confirming both skills are unavailable |
+| Step R: Agent JSON malformed | Retry once. If still failing, skip merge |
 
 ## Reading Trends
 
@@ -769,3 +786,222 @@ Show in chat as markdown tables:
 - **Top 10 luxury keywords** table: rank, term, type, key_signal, posts, likes
 - **Signal distribution** table: category, count, representatives
 - **Summary** prose: top trend + notable observations
+
+---
+
+## Step R — Restaurant Discovery (on-demand)
+
+For each trending dish keyword, distill a pure food concept, search OpenRice
+for restaurants, then fetch full details (name, description, BO services).
+
+### Trigger
+
+Only when user explicitly asks for:
+- "搵餐廳" / "餐廳推薦" / "find restaurants" / "有咩餐廳"
+- Any phrase about discovering restaurants based on trending keywords
+
+Requires `daily_trending_{REGION}.json` to exist from a previous pipeline run.
+If not found, warn: "請先執行 pipeline（行 trending pipeline）再搵餐廳"
+
+### Config
+
+```json
+// config/threshold.json → restaurant_discovery
+{
+  "max_keywords": 10,
+  "max_restaurants_per_keyword": 10
+}
+```
+
+`max_keywords` controls how many top dish keywords (sorted by total_likes)
+to process. `max_restaurants_per_keyword` caps results per concept.
+
+### Step Ra — Prepare Prompt
+
+```bash
+python3 scripts/restaurant_discovery.py --date YYYY-MM-DD --region hk --prepare --output /tmp/restaurant_prompt.txt
+```
+
+Reads `daily_trending_{REGION}.json`, extracts all `type: "dish"` keywords
+(sorted by total_likes, up to `max_keywords`), and formats a structured
+prompt with each keyword's term, engagement stats, and background.
+
+### Step Rb — Concept Distillation (Agent)
+
+Agent reads `/tmp/restaurant_prompt.txt` and distills each keyword into
+a pure food concept suitable for OpenRice search.
+
+#### Concept Distillation Prompt
+
+---
+
+You are an F&B search concept distillation assistant.
+
+## Task
+
+For each trending dish keyword + background below, distill the **most
+representative pure food concept** for searching restaurants on OpenRice.
+
+## Rules
+
+- **Strip noise**: remove brand names (7-11, McDonald's), campaign markers
+  (聯乘, 限定, 期間), and region qualifiers (中環, 旺角)
+- **Keep specificity**: "龍蝦湯拉麵" stays as-is, do NOT reduce to "拉麵".
+  "沙嗲牛肉麵" stays as-is, do NOT reduce to "牛肉麵"
+- **Prefer Traditional Chinese**: if the original is Chinese, keep it.
+  If English (e.g. "craft beer"), keep English
+- **One concept per keyword**: output exactly one concept string
+- If the keyword is already a clean food concept (no noise to strip),
+  output it unchanged
+
+## Examples
+
+| Keyword + Background | Distilled Concept |
+|---------------------|-------------------|
+| 梅菜扣肉飯 — 源自 7-11 聯乘貼文 | 梅菜扣肉 |
+| 龍蝦湯拉麵 — 中環新店限定 | 龍蝦湯拉麵 |
+| 沙嗲牛 — foodie 熱議 | 沙嗲牛肉 |
+| omakase — 尖沙咀新場 | omakase |
+| 珍珠奶茶 — 多間新開手搖店 | 珍珠奶茶 |
+
+## Input Keywords
+
+{KEYWORD_PROMPT}
+
+## Output
+
+Return ONLY JSON. No markdown, no explanation.
+
+```json
+[
+  {"keyword": "梅菜扣肉飯", "concept": "梅菜扣肉"},
+  {"keyword": "龍蝦湯拉麵", "concept": "龍蝦湯拉麵"}
+]
+```
+
+---
+
+### Step Rc — Search & Detail (Agent)
+
+For each distilled concept, the Agent **MUST** use the dedicated skills in sequence.
+**No other method is allowed unless both skills are confirmed unavailable.**
+
+1. **`openrice-restaurant-list` skill** — search OpenRice for the concept,
+   return restaurant name + URL list (up to `max_restaurants_per_keyword`)
+2. **`openrice-restaurant-detail` skill** — for each restaurant URL, fetch:
+   - Name
+   - Description (meta description: area + specialty + signature dishes)
+   - BO services: booking preorder, booking offer, takeaway, vouchers,
+     bill discount
+
+**Skill fallback (last resort only)**: if `openrice-restaurant-list` or
+`openrice-restaurant-detail` skills are **both confirmed unavailable**,
+the Agent may fall back to a method of its choice (e.g. BUA / browser-use
+for OpenRice scraping, web_fetch, etc.). Do NOT skip the skills proactively —
+always attempt them first.
+
+Agent outputs structured JSON:
+
+```json
+[
+  {
+    "concept": "梅菜扣肉",
+    "source_keyword": "梅菜扣肉飯",
+    "source_background": "源自 7-11 聯乘貼文，兩日內爆發",
+    "restaurants": [
+      {
+        "name": "XXX小廚",
+        "url": "https://www.openrice.com/zh/hongkong/r-xxx",
+        "description": "位於旺角，主打傳統客家菜，招牌梅菜扣肉肥瘦適中...",
+        "bo_services": {
+          "booking_preorder": [
+            {"name": "[1位用] 晚市套餐 HK$188", "url": "..."}
+          ],
+          "booking_offer": [
+            {"type": "offer", "tag": "特惠", "title": "晚市8折", "thumb": "...", "url": "..."},
+            {"type": "reward", "reward": "賞$2 Rice Dollars"}
+          ],
+          "takeaway": [
+            {"status": "active", "text": "外賣自取 9 折"}
+          ],
+          "vouchers": [
+            {"discount": "82折", "title": "椒麻冷鍋魚", "priceNew": "HK$318", "priceOld": "HK$388", "thumb": "...", "url": "..."}
+          ],
+          "bill_discount": [
+            {"text": "以指定電子錢包埋單，即賺0.5% Rice Dollars回贈"}
+          ]
+        }
+      }
+    ]
+  }
+]
+```
+
+Rules:
+- Each concept gets its own array of restaurants
+- `bo_services` fields: `booking_preorder`, `booking_offer`, `takeaway`,
+  `vouchers`, `bill_discount`. Empty arrays `[]` if none found
+- `booking_offer` includes both `type: "offer"` (折扣/贈品) and
+  `type: "reward"` (Rice Dollars 獎賞)
+- `takeaway` includes both `status: "active"` and `status: "inactive"`
+- Skip concepts that return 0 OpenRice results
+
+### Step Rd — Merge Results
+
+```bash
+python3 scripts/restaurant_discovery.py --date YYYY-MM-DD --region hk --merge /tmp/agent_output.json
+```
+
+Merges restaurant discoveries into `daily_trending_{REGION}.json`:
+
+```json
+{
+  "restaurant_discoveries": [
+    {
+      "concept": "梅菜扣肉",
+      "source_keyword": "梅菜扣肉飯",
+      "source_background": "源自 7-11 聯乘貼文，兩日內爆發",
+      "restaurants": [...]
+    }
+  ]
+}
+```
+
+### Present Restaurant Discovery Summary
+
+Show in chat as markdown tables, one section per concept:
+
+```
+🏪 關鍵詞餐廳推薦
+
+### 梅菜扣肉（來自關鍵詞「梅菜扣肉飯」）
+> 背景：源自 7-11 聯乘貼文，兩日內爆發
+
+| # | 餐廳 | 簡介 | BO服務 |
+|---|------|------|--------|
+| 1 | **XXX小廚** (旺角) | 主打傳統客家菜，招牌梅菜扣肉肥瘦適中 | 訂座優惠、外賣自取 |
+| 2 | **YYY飯店** (深水埗) | ... | 餐飲券、埋單優惠 |
+| ... | ... | ... | ... |
+
+### 龍蝦湯拉麵（來自關鍵詞「龍蝦湯拉麵」）
+> 背景：中環新店限定，foodie 熱烈討論
+
+| # | 餐廳 | 簡介 | BO服務 |
+|---|------|------|--------|
+| 1 | ... | ... | ... |
+
+Full data: runs/YYYY-MM-DD/daily_trending_HK.json
+```
+
+**Display rules**:
+- One `###` section per concept, with source keyword in parentheses
+- Background quoted with `>` blockquote
+- Table columns: `#`, `餐廳`, `簡介`, `BO服務`
+- Restaurant name **bold**, area in parentheses extracted from description
+- Description: one compact line summarizing the restaurant (area + specialty)
+- BO服務: comma-separated list of available service types, omitting types
+  with empty arrays. Map: `booking_preorder` → 訂座預購套餐,
+  `booking_offer` → 訂座優惠, `takeaway` → 外賣自取,
+  `vouchers` → 餐飲券, `bill_discount` → 埋單優惠
+- Skip concepts with 0 restaurants found
+- End with full data path
