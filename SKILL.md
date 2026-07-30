@@ -28,7 +28,7 @@ All commands must be run from the skill directory (`~/.agents/skills/fnb-trendin
 | Dependency | Version / Notes |
 |------------|-----------------|
 | `bash` 4+ | |
-| `python3` 3.10+ | stdlib only — no external packages required |
+| `python3` 3.10+ | stdlib + `openpyxl` (for Step 6 XLSX export) |
 | `curl` | |
 | `jq` | JSON processing in shell scripts |
 | `xargs` | concurrency control (`-P` flag required) |
@@ -52,6 +52,7 @@ All commands must be run from the skill directory (`~/.agents/skills/fnb-trendin
 | "run TW pipeline" / "行台灣pipeline" / "行TW" | Full run — **Taiwan only, defaults to yesterday** (IG users + Google Trends TW) |
 | "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending_HK.json or daily_trending_TW.json` → present Top 10 by category with background |
 | "luxury analysis" / "貴價食材" / "高端餐飲" / "luxury dining" | Run **Step L** (luxury dining signal extraction, on-demand) |
+| "export xlsx" / "export excel" / "匯出 xlsx" | Run **Step 6** (export results to formatted .xlsx workbook) |
 
 ### ⚠️ Output format rule
 
@@ -111,6 +112,7 @@ Step 2: Filter   → filter_threshold.py (like OR share ≥ threshold, mode conf
 Step 3: Extract  → Agent reads filtered posts + Google Trends → extracts keywords
 Step 4: Assemble → assemble_output.py → daily_trending_{REGION}.json
 Step 5: Summary  → Present daily results in chat
+Step 6: Export   → export_xlsx.py → formatted .xlsx workbook (on-demand)
 
 --- on-demand only (not part of daily pipeline) ---
 
@@ -648,6 +650,32 @@ Manually merge the Agent's JSON into `daily_trending_{REGION}.json`:
 ```
 
 This adds a `luxury_insights` field to the daily trending file.
+
+### Step 6 — Export XLSX (on-demand)
+
+Export the daily trending results to a formatted Excel workbook.
+
+**Trigger**: user explicitly asks for "export xlsx" / "export excel" / "匯出 xlsx" / "download xlsx".
+
+**Dependency**: `openpyxl` (Python package). Install with `pip install openpyxl` if missing.
+
+```bash
+# Export with default settings (HK, top 15 dishes, output to workspace)
+python3 scripts/export_xlsx.py --date YYYY-MM-DD --region hk
+
+# Custom output path and top N
+python3 scripts/export_xlsx.py --date YYYY-MM-DD --region hk --output /path/to/output.xlsx --top 20
+```
+
+The workbook contains three sheets:
+
+| Sheet | Content |
+|-------|---------|
+| **本日要點** | Auto-inferred daily highlights (signal + description) |
+| **熱門菜式** | Top N dish keywords with term→concept, post count, likes, source background |
+| **原始數據摘要** | Pipeline execution summary (date, thresholds, post counts, status) |
+
+Output path defaults to `~/.openclaw/workspace/{REGION}_FB_Trending_{DATE}.xlsx`.
 
 ### Present Luxury Summary
 
