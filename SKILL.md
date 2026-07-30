@@ -161,6 +161,7 @@ Each file is self-contained per region — no cross-region merging.
   "keywords": [
     {
       "term": "沙嗲拼盤",
+      "concept": "沙嗲拼盤",
       "type": "dish",
       "post_count": 3,
       "total_likes": 8500,
@@ -277,6 +278,28 @@ For each post below, extract:
    "蝦拉麵" NOT "拉麵", "冰鎮咕嚕肉" NOT "咕嚕肉", "沙嗲牛肉麵" NOT "沙嗲".
    Include: individual dishes, desserts, drinks, baked goods, specific food items.
 
+   **For each dish, also output a `concept`** — a generalized version that strips
+   **marketing noise** but keeps **food-attribute modifiers**:
+
+   | Strip (marketing noise) | Keep (food attributes) |
+   |--------------------------|------------------------|
+   | Brand names: KFC, 麥當勞, 7-11 | Ingredients: 龍蝦, 和牛, 斑蘭 |
+   | Campaign/seasonal: 紫色(EVA聯乘), 至尊(product line), 期間限定 | Cooking methods: 沙嗲, 鐵板, 冰鎮 |
+   | Promotional adjectives: 懷舊, 激抵, 超值 | Flavors: 麻辣, 蒜蓉, 朱古力 |
+   | Co-branding markers: × EVA, × Chiikawa | Dish type: 拉麵, 漢堡, 年糕 |
+
+   **Examples:**
+   - "紫色巴辣雞腿包" → concept: "巴辣雞腿包" (strip 紫色=聯乘色)
+   - "至尊漢堡" → concept: "安格斯牛肉漢堡" (strip 至尊=product line, keep core)
+   - "朱古力班戟豬柳蛋漢堡" → concept: "豬柳蛋漢堡" (strip 朱古力班戟=McGriddles variant)
+   - "懷舊棉花糖" → concept: "棉花糖" (strip 懷舊=promotional adjective)
+   - "龍蝦湯拉麵" → concept: "龍蝦湯拉麵" (no change — 龍蝦 is ingredient, keep)
+   - "沙嗲牛肉麵" → concept: "沙嗲牛肉麵" (no change — already a clean food concept)
+   - "牛油年糕" → concept: "牛油年糕" (no change — 牛油 is ingredient, keep)
+
+   If the dish name is already a clean food concept with no marketing noise,
+   `concept` should equal the dish name exactly.
+
 2. **Venues** (優先) — restaurant names, cafe names, food venues, food streets,
    dai pai dong, markets with food significance. Must be at least 2 characters.
    Include both chains (壽司郎, 麥當勞, 薩莉亞) and notable independents.
@@ -383,6 +406,7 @@ Return ONLY JSON. No markdown, no explanation.
   "keywords": [
     {
       "term": "沙嗲拼盤",
+      "concept": "沙嗲拼盤",
       "type": "dish",
       "post_indices": [0, 3, 7]
     },
@@ -405,6 +429,7 @@ Rules:
 - `geo_by_content` — free-form location tag (e.g. `"HK"`, `"TW"`, `"JP"`, `"KR"`, …) or `null`
 - `keywords[].post_indices` — which posts mention this keyword (0-based)
 - `keywords[].type` — "dish", "venue", or "cuisine"
+- `keywords[].concept` — **required for `type: "dish"`**, omit for venue/cuisine. Generalized food concept stripped of marketing noise (brands, campaigns, promotional adjectives) but keeping food-attribute modifiers (ingredients, cooking methods, flavors, dish type). Equal to `term` if the dish name is already clean.
 - Google Trends terms: only include if they are **specific F&B proper nouns** — named dishes (至尊漢堡, 大家樂冬瓜盅), named venues (富臨漁港), or named brands (McGriddles, McDonald). Omit generic category words (套餐, 麵包, 榴槤), supermarket/retail names (百佳超級市場), and non-F&B terms entirely. Included terms get `post_indices: []`
 - Return ONLY the JSON
 
@@ -477,9 +502,9 @@ not a data dump.
 
 | 關鍵詞 | Posts | Likes | 背景 |
 |--------|-------|-------|------|
-| 梅菜扣肉飯 | 2 | 67.5K | 源自 7-11 聯乘貼文，兩日內爆發 |
+| 梅菜扣肉飯 → 梅菜扣肉 | 2 | 67.5K | 源自 7-11 聯乘貼文，兩日內爆發 |
 | 沙嗲牛 | 4 | 40.1K | #hkfoodie 及 @girlsfoodies 多位 foodie 提及 |
-| 蝦多士 | 4 | 9.8K | 港式茶記經典小食，Threads 上熱議 |
+| 懷舊棉花糖 → 棉花糖 | 4 | 9.8K | 葵廣地下新店重現白兔棉花糖 |
 
 📍 Social 熱門餐廳（按互動熱度，Top 10）
 
@@ -509,7 +534,10 @@ Full data: runs/YYYY-MM-DD/daily_trending_HK.json
 
 For each keyword's background, infer from the associated posts' `caption_snippet`
 and `source` fields. Keep it to one short line:
-- **Dishes**: mention the source context (聯乘/新開/限時/傳統) and notable platform
+- **Dishes**: mention the source context (聯乘/新開/限時/傳統) and notable platform.
+  **Display rule for `concept`**: when a dish keyword has a `concept` field that differs
+  from `term`, show it as `term → concept` in the 關鍵詞 column.
+  When `concept == term`, show only `term`.
 - **Venues**: mention location/type (連鎖/新開/地區) and what they're known for
 - **Cuisines**: NO background needed — just list post_count
 - **Google**: show `related_terms` as a comma-separated list (exclude the term itself).
