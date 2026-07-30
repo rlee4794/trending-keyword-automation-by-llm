@@ -230,6 +230,15 @@ to respect Apify's 32-actor concurrent limit. Default max-concurrent is 30.
 **Hong Kong:** 16 actors (1 Google + 4 IG hashtags + 10 IG users + 1 Threads)
 **Taiwan:** 57 actors (1 Google + 56 IG users)
 
+#### Abort-on-failure rule
+
+After all actors finish, `run_fetch.sh` verifies every expected output file exists
+and is non-empty. **If ANY platform (e.g. Threads, any single IG user/hashtag, Google)
+fails to produce output → abort immediately. Do NOT proceed to Step 2.**
+
+No retry. Individual actor failure = pipeline abort. Report which platform(s)
+failed and stop.
+
 ```bash
 # Determine date (default: yesterday — see Date Convention above)
 TARGET_DATE=$(date -d "yesterday" +%Y-%m-%d)
@@ -556,6 +565,7 @@ When presenting Google results:
 
 | Scenario | Handling |
 |----------|----------|
+| Apify actor / platform fails (Step 1) | No retry. Abort entire pipeline immediately. See Step 1 abort-on-failure rule. |
 | 0 posts pass threshold | Warn, suggest lowering `config/threshold.json` |
 | LLM extraction fails | Retry once. If still failing, write posts without `extracted` field |
 | Malformed JSON from LLM | Retry once with stricter prompt |
