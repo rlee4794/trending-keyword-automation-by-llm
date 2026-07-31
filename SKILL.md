@@ -47,9 +47,9 @@ All commands must be run from the skill directory (`~/.agents/skills/fnb-trendin
 
 | User says | Action |
 |-----------|--------|
-| "run trending pipeline" / "行trending pipeline" | Full run — **HK only, defaults to yesterday** (Steps 1-4 + Summary) |
+| "run trending pipeline" / "行trending pipeline" | Full run — **HK only** (Steps 1-4 + Summary, see Date Convention) |
 | "run trending pipeline --crossday-dedup" | Full run — HK only, **enable 6-day cross-day URL dedup** (remove posts that appeared in previous 6 days) |
-| "run TW pipeline" / "行台灣pipeline" / "行TW" | Full run — **Taiwan only, defaults to yesterday** (IG users + Google Trends TW) |
+| "run TW pipeline" / "行台灣pipeline" / "行TW" | Full run — **Taiwan only** (IG users + Google Trends TW, see Date Convention) |
 | "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending_HK.json or daily_trending_TW.json` → present Top 10 by category with background |
 | "luxury analysis" / "貴價食材" / "高端餐飲" / "luxury dining" | Run **Step L** (luxury dining signal extraction, on-demand) |
 | "export xlsx" / "export excel" / "匯出 xlsx" | Run **Step 6** (export results to formatted .xlsx workbook) |
@@ -66,11 +66,8 @@ Exception: single-value answers and short explanations can remain as prose.
 
 ### ⚠️ Region selector rule
 
-When the user says "run trending pipeline" **without** specifying a region,
-**default to HK only**. Do NOT run Taiwan unless the user explicitly says
-"TW" / "台灣" / "Taiwan" / "台北" in the same request.
-
-When the user specifies TW, run **Taiwan only** (skip HK Google/IG hashtags/Threads).
+Default to **HK only**. Run Taiwan only when user explicitly says "TW" /
+"台灣" / "Taiwan". See Quick Reference table above for per-phrase behavior.
 
 ### ⚠️ Step L is on-demand only
 
@@ -84,25 +81,11 @@ Do NOT run Step L automatically after a regular pipeline run.
 
 ### ⚠️ Already-run rule
 
-If today's pipeline run has **already completed** (i.e. `daily_trending_{REGION}.json` for
-**yesterday's date** exists and was generated today), and the user asks about trends **without** explicitly
-requesting a re-run (e.g. just "run trending pipeline" / "有什麼trends" /
-"今日有咩趨勢"), do NOT re-execute the pipeline. Instead, read the existing
-`daily_trending_{REGION}.json` and present the results directly:
-
-1. **Top 10 by category** — split into:
-   - 🔥 Social 熱門菜式（按 likes 排序，最多 10 個）
-   - 📍 Social 熱門餐廳（按 likes 排序，最多 10 個）
-   - 🍽️ 熱門菜系（按 post_count 排序，最多 10 個）
-   - 🔍 Google 熱搜（按 volume 排序，最多 10 個，只列 F&B 相關）
-2. **Short background** — for each keyword in 🔥 Social 熱門菜式 and 📍 Social 熱門餐廳,
-   include a one-line context from `caption_snippet` or source info.
-   🍽️ 熱門菜系 and 🔍 Google 熱搜 do NOT need background.
-   For example:
-   - 梅菜扣肉飯 — 源自 7-11 聯乘貼文，兩日內累積 67K likes
-   - 沙嗲牛 — 4 篇貼文提及，來自 #hkfoodie 及 @girlsfoodies
-3. If the user explicitly says "重跑" / "重新 fetch" / "rerun" / "再run多次",
-   then execute the full pipeline again.
+If `daily_trending_{REGION}.json` for **TARGET_DATE** already exists and the user
+asks about trends without explicitly requesting a re-run ("重跑" / "重新 fetch" /
+"rerun"), do NOT re-execute. Read the existing file and present results directly
+(see `docs/presentation.md` for format). Only re-run when the user explicitly
+says "重跑" / "重新 fetch" / "rerun" / "再run多次".
 
 ## Pipeline Flow
 
@@ -194,24 +177,8 @@ Each file is self-contained per region — no cross-region merging.
 | `config/apify_actors_v1.json` | Apify actor IDs |
 | `config/social_listening_v1.json` | Platform seeds |
 
-Threshold defaults:
-
-```json
-{
-  "instagram": { "min_likes": 1000, "min_shares": 500, "mode": "or" },
-  "threads": { "min_likes": 1000, "min_shares": 500, "mode": "or" },
-  "google": { "_comment": "Set enabled to false to skip Google Trends entirely (fetch, extract, display).", "enabled": false, "min_volume": 0 },
-  "extraction_scope": {
-    "_comment": "Controls which keyword types are extracted, assembled, and displayed. Set to false to skip entirely.",
-    "dishes": true,
-    "venues": false,
-    "cuisines": false
-  }
-}
-```
-
-Adjust `min_likes`/`min_shares` based on data volume. If too few posts pass,
-lower thresholds. Start conservative and widen if needed.
+See `config/threshold.json` for current defaults and extraction scope.
+Adjust `min_likes`/`min_shares` based on data volume — start conservative, widen if needed.
 
 ## Environment
 
@@ -242,7 +209,7 @@ No retry. Individual actor failure = pipeline abort. Report which platform(s)
 failed and stop.
 
 ```bash
-# Determine date (default: yesterday — see Date Convention above)
+# TARGET_DATE defaults to yesterday (see Date Convention)
 TARGET_DATE=$(date -d "yesterday" +%Y-%m-%d)
 
 # Fetch data with concurrency control
@@ -276,175 +243,11 @@ The agent examines each post's `caption_snippet` and `hashtags`, plus `google_tr
 
 #### Extraction Prompt
 
----
-
-You are extracting trending F&B keywords from Hong Kong social media posts
-and Google Trends data. Your output drives a daily HK food trends report.
-
-## Task
-
-For each post below, extract:
-
-1. **Dishes** (優先) — specific dish names. Keep the full name with modifiers:
-   "蝦拉麵" NOT "拉麵", "冰鎮咕嚕肉" NOT "咕嚕肉", "沙嗲牛肉麵" NOT "沙嗲".
-   Include: individual dishes, desserts, drinks, baked goods, specific food items.
-
-   **For each dish, also output a `concept`** — a generalized version that strips
-   **marketing noise** but keeps **food-attribute modifiers**:
-
-   | Strip (marketing noise) | Keep (food attributes) |
-   |--------------------------|------------------------|
-   | Brand names: KFC, 麥當勞, 7-11 | Ingredients: 龍蝦, 和牛, 斑蘭 |
-   | Campaign/seasonal: 紫色(EVA聯乘), 至尊(product line), 期間限定 | Cooking methods: 沙嗲, 鐵板, 冰鎮 |
-   | Promotional adjectives: 懷舊, 激抵, 超值 | Flavors: 麻辣, 蒜蓉, 朱古力 |
-   | Co-branding markers: × EVA, × Chiikawa | Dish type: 拉麵, 漢堡, 年糕 |
-
-   **Examples:**
-   - "紫色巴辣雞腿包" → concept: "巴辣雞腿包" (strip 紫色=聯乘色)
-   - "至尊漢堡" → concept: "安格斯牛肉漢堡" (strip 至尊=product line, keep core)
-   - "朱古力班戟豬柳蛋漢堡" → concept: "豬柳蛋漢堡" (strip 朱古力班戟=McGriddles variant)
-   - "懷舊棉花糖" → concept: "棉花糖" (strip 懷舊=promotional adjective)
-   - "龍蝦湯拉麵" → concept: "龍蝦湯拉麵" (no change — 龍蝦 is ingredient, keep)
-   - "沙嗲牛肉麵" → concept: "沙嗲牛肉麵" (no change — already a clean food concept)
-   - "牛油年糕" → concept: "牛油年糕" (no change — 牛油 is ingredient, keep)
-
-   If the dish name is already a clean food concept with no marketing noise,
-   `concept` should equal the dish name exactly.
-
-2. **Venues** (優先) — restaurant names, cafe names, food venues, food streets,
-   dai pai dong, markets with food significance. Must be at least 2 characters.
-   Include both chains (壽司郎, 麥當勞, 薩莉亞) and notable independents.
-   A venue is a PROPER NOUN — if it's a common Chinese word that could appear
-   in any sentence (不, 的, 好, 是, 有, 食, 飲, 去, 來, 我, 你, 他, 她, 很,
-   個, 種, 啲, 嘅, 咁, 仲, 未, 冇, 無, 係, 喺, 俾, 畀, 令, 將, 但, 只,
-   已, 更, 最, 都, 就, 也, 會, 要, 可, 又, 或, 與, 及), it is NOT a venue.
-
-   **Extracting venues from lists and markers:**
-   - Numbered/bullet lists of restaurants → extract each as a venue.
-     Example: "1. 牛奶冰室 2. 蜜雪冰城 3. 百分百餐廳" → venues: [牛奶冰室, 蜜雪冰城, 百分百餐廳]
-   - 📍 followed by a name → extract as venue.
-     Example: "📍Picanhas' 中環伊利近街" → venues: [Picanhas']
-   - Restaurant name + food description → extract the name.
-     Example: "紅磡炒得喜 超大盆花甲蒸蛋！！" → venues: [紅磡炒得喜]
-
-3. **Cuisines** (次要) — cuisine types or food categories: 日本菜, 泰國菜, 川菜,
-   dim sum, ramen, omakase, 放題, 茶餐廳, 打邊爐, 燒烤.
-
-4. **geo_by_content** (必須) — where the food/venue is physically located.
-   Output a **free-form location tag**, NOT a yes/no bucket.
-   - `"HK"` — clearly Hong Kong (香港地名、港式用語、香港分店、$HKD 標價)
-   - `"TW"` — clearly Taiwan (台灣地名如一中街/逢甲/西門町、台灣手機格式 09xx-xxx-xxx、
-     台灣分店命名如XX店/XX分店、台幣 NT$ 標價、台灣特有品牌)
-   - `"JP"` — Japan (大阪、東京、京都、札幌、沖繩…)
-   - `"KR"` — Korea (首爾、釜山、明洞…)
-   - `"TH"` — Thailand (曼谷、清邁、布吉…)
-   - `"MO"` — Macau
-   - `"CN"` — Mainland China (深圳、上海、北京…)
-   - `"SG"` — Singapore
-   - `"MY"` — Malaysia
-   - `null` — truly cannot determine (e.g. pure food photo with no location clues)
-
-   Use ISO 3166-1 alpha-2 country codes where possible.
-   If a post mentions both regions (e.g. "香港人去台北食XXX"),
-   classify by where the FOOD is served, not the author's location.
-
-**DO NOT extract:**
-- Single characters as venues or dishes — minimum 2 characters required.
-  A single Chinese character is almost never a restaurant name or dish.
-  The rare exceptions (like the restaurant '不' at 北角錦屏街) appear
-  ONLY in location/address contexts (📍不, 🗺️ address). If a single
-  character appears mid-sentence as a common word, do NOT extract it.
-- Common Chinese function words / adverbs / conjunctions as venues or dishes:
-  不, 的, 了, 是, 在, 有, 和, 都, 就, 也, 會, 要, 可, 好, 食, 飲, 去, 來,
-  我, 你, 他, 她, 很, 個, 種, 啲, 嘅, 咁, 仲, 未, 冇, 無, 係, 喺, 俾, 畀,
-  令, 將, 但, 只, 已, 更, 最, 又, 或, 與, 及
-- Vague/generic terms: 好味, 美食, 必食, 好食, 好西, 香港, foodie, foodporn, yum
-- Standalone locations without food context: 北角, 旺角, 中環, mongkok, causeway bay
-- Non-food activities: 唱K, 行山, 打卡, yoga
-- Generic social media tags: hkfood, 香港美食, 相機食先, hkfoodie
-- Shop/brand names that look like food — if a term appears alongside
-  開幕/插旗/進駐/新店/排隊/分店/試業/開張 without describing the food
-  itself, it's a VENUE, not a dish. Examples: 夏茶, 五桐號, 龜記,
-  天仁茗茶, 吃茶三千, 牛大人, 板神, 鼎泰豐, 鴻福堂. These are brands
-  that happen to sell food/drinks — do NOT extract them as dishes.
-
-**Naming rules:**
-- Use the most common Hong Kong Chinese name: 壽司郎 not Sushiro, 麥當勞 not McDonald's
-- For English-only concepts, keep English: craft beer, omakase, ramen
-- Mixed terms OK: 和牛burger, DIY燒肉
-
-## Posts
-
-Format: `[N] platform | source | likes ❤️ | comments 💬 | shares 🔄`
-
-**Threads-specific notes:** Threads posts are shorter and more conversational
-than Instagram. They rarely use hashtags. Pay extra attention to:
-- Numbered/bullet lists of restaurants or dishes (e.g. "1. 牛奶冰室 2. 蜜雪冰城")
-- Venue names after 📍 markers (e.g. "📍Picanhas'")
-- Standalone restaurant names followed by food descriptions
-  (e.g. "紅磡炒得喜 超大盆花甲蒸蛋！！")
-- Dish names in short declarative sentences
-  (e.g. "推薦一間中環附近嘅牛排午餐")
-
-{CAPTIONS}
-
-## Google Trends
-
-{GOOGLE_TERMS}
-
-## Output
-
-Return ONLY JSON. No markdown, no explanation.
-
-```json
-{
-  "posts": [
-    {
-      "index": 0,
-      "dishes": ["沙嗲拼盤", "燒蠔"],
-      "venues": ["北角串燒店"],
-      "cuisines": ["串燒"],
-      "geo_by_content": "HK"
-    },
-    {
-      "index": 1,
-      "dishes": ["豬排", "千層酥"],
-      "venues": ["KYK", "grenier"],
-      "cuisines": ["日本菜", "咖啡"],
-      "geo_by_content": "JP"
-    }
-  ],
-  "keywords": [
-    {
-      "term": "沙嗲拼盤",
-      "concept": "沙嗲拼盤",
-      "type": "dish",
-      "post_indices": [0, 3, 7]
-    },
-    {
-      "term": "壽司郎",
-      "type": "venue",
-      "post_indices": [1, 4, 5, 8, 12]
-    },
-    {
-      "term": "日本菜",
-      "type": "cuisine",
-      "post_indices": [1, 6, 9]
-    }
-  ]
-}
-```
-
-Rules:
-- `dishes`, `venues`, `cuisines` arrays — empty `[]` if nothing found
-- `geo_by_content` — free-form location tag (e.g. `"HK"`, `"TW"`, `"JP"`, `"KR"`, …) or `null`
-- `keywords[].post_indices` — which posts mention this keyword (0-based)
-- `keywords[].type` — "dish", "venue", or "cuisine"
-- `keywords[].concept` — **required for `type: "dish"`**, omit for venue/cuisine. Generalized food concept stripped of marketing noise (brands, campaigns, promotional adjectives) but keeping food-attribute modifiers (ingredients, cooking methods, flavors, dish type). Equal to `term` if the dish name is already clean.
-- Google Trends terms: only include if they are **specific F&B proper nouns** — named dishes (至尊漢堡, 大家樂冬瓜盅), named venues (富臨漁港), or named brands (McGriddles, McDonald). Omit generic category words (套餐, 麵包, 榴槤), supermarket/retail names (百佳超級市場), and non-F&B terms entirely. Included terms get `post_indices: []`
-- Return ONLY the JSON
-
----
+The extraction prompt lives in `prompts/extract.md`. Read it, replace
+`{CAPTIONS}` with formatted posts and `{GOOGLE_TERMS}` with Google Trends data,
+then send to LLM for extraction. The prompt includes full instructions on
+keyword types, concept extraction rules, geo_by_content tagging, DO NOT
+rules, naming conventions, and the expected JSON output schema.
 
 ### Step 4 — Assemble Output
 
@@ -503,65 +306,10 @@ not a data dump.
 
 #### 5b — 分類表格 (Category Tables)
 
-**Format: Top 10 per enabled category, with short background for each item.**
-**Use markdown tables, not bullet lists.**
-
-```
-✅ Pipeline done. {len(posts)} posts passed threshold → {len(keywords)} keywords extracted
-
-🔥 Social 熱門菜式（按互動熱度，Top 10）
-
-| 關鍵詞 | Posts | Likes | 背景 |
-|--------|-------|-------|------|
-| 梅菜扣肉飯 → 梅菜扣肉 | 2 | 67.5K | 源自 7-11 聯乘貼文，兩日內爆發 |
-| 沙嗲牛 | 4 | 40.1K | #hkfoodie 及 @girlsfoodies 多位 foodie 提及 |
-| 懷舊棉花糖 → 棉花糖 | 4 | 9.8K | 葵廣地下新店重現白兔棉花糖 |
-
-📍 Social 熱門餐廳（按互動熱度，Top 10）
-
-| 餐廳 | Posts | Likes | 背景 |
-|------|-------|-------|------|
-| 7-11 | 2 | 67.5K | 便利商店聯乘新品引發熱潮 |
-| 夜嚐野 | 2 | 27.8K | 深水埗新開宵夜檔，串燒為主 |
-
-🍽️ 熱門菜系（按提及 post 數，Top 10，無需背景）
-
-| 菜系 | Posts |
-|------|-------|
-| 甜品 | 20 |
-| 咖啡 | 12 |
-
-🔍 Google 熱搜關鍵詞（按搜尋量，Top 10）
-
-| 關鍵詞 | Volume | 趨勢 | 相關詞 |
-|--------|--------|------|--------|
-| 大家樂冬瓜盅 | 200 | 🔥🔍 | 冬瓜盅、大家樂 |
-| 富臨漁港 | 2,000 | — | 富临渔港 |
-
-Full data: runs/YYYY-MM-DD/daily_trending_HK.json
-```
-
-#### Background extraction rules
-
-For each keyword's background, infer from the associated posts' `caption_snippet`
-and `source` fields. Keep it to one short line:
-- **Dishes**: mention the source context (聯乘/新開/限時/傳統) and notable platform.
-  **Display rule for `concept`**: when a dish keyword has a `concept` field that differs
-  from `term`, show it as `term → concept` in the 關鍵詞 column.
-  When `concept == term`, show only `term`.
-- **Venues**: mention location/type (連鎖/新開/地區) and what they're known for
-- **Cuisines**: NO background needed — just list post_count
-- **Google**: show `related_terms` as a comma-separated list (exclude the term itself).
-  If the term also appears in social keywords, tag `🔥🔍`
-
-#### Google related_terms display rules
-
-Each Google Trends entry now carries a `related_terms` array from the raw data.
-When presenting Google results:
-- Show `related_terms` inline after the volume, e.g. `— 相關詞：燒鵝, 大家樂`
-- Exclude the primary term itself from the display (it's redundant)
-- Deduplicate — if the same related term appears multiple times, show it once
-- If no related_terms or all are duplicates of the primary term, omit the `— 相關詞：` part
+Read `docs/presentation.md` for full table templates, background extraction
+rules, concept display conventions, and Google related_terms formatting.
+Present each enabled category as a markdown table (Top 10, sorted by
+engagement), with one-line background per item.
 
 ## Edge Cases
 
@@ -571,7 +319,7 @@ When presenting Google results:
 | 0 posts pass threshold | Warn, suggest lowering `config/threshold.json` |
 | LLM extraction fails | Retry once. If still failing, write posts without `extracted` field |
 | Malformed JSON from LLM | Retry once with stricter prompt |
-| Agent uses today's date by mistake | Re-run with yesterday. SKILL.md defaults to `date -d "yesterday"` |
+| Agent uses today's date by mistake | Re-run with correct TARGET_DATE (see Date Convention) |
 
 ## Step L — Luxury Dining Extraction (on-demand)
 
@@ -608,38 +356,9 @@ Agent reads `/tmp/luxury_prompt.txt` and extracts:
    with representative keywords per category
 3. **Summary** — high-level trend narrative
 
-### Judgment Framework
-
-LLM should consider a keyword luxury if it involves:
-
-| Signal | Examples |
-|--------|---------|
-| **貴價食材** | 魚子醬、鵝肝、和牛、龍蝦、鮑魚、海膽、松露、花膠、燕窩、西班牙黑豚、貓山王榴槤 |
-| **精緻料理形式** | Omakase、割烹、懷石料理、Fine Dining、米芝蓮星級、預約制限定 |
-| **溢價體驗** | 人均 $500+、名人飯堂、聯乘限定、過江龍名店、星級名廚客座 |
-
-Exclude: 連鎖快餐、茶餐廳日常、放題/任食（除非主打貴價食材如榴槤放題）、街頭小食。
-
-### Output Format
-
-Agent outputs JSON:
-
-```json
-{
-  "top_keywords": [
-    {"rank": 1, "term": "龍蝦", "type": "dish",
-     "key_signal": "鐵板燒$888+預約制龍蝦湯拉麵",
-     "post_count": 9, "likes": 22300}
-  ],
-  "signal_distribution": {
-    "🦞 龍蝦": {"count": 2, "representatives": ["龍蝦", "龍蝦汁海膽闊麵"]}
-  },
-  "summary": {
-    "luxury_signal_count": 15,
-    "top_trend": "..."
-  }
-}
-```
+The extraction framework (judgment criteria, output format) lives in
+`prompts/luxury.md`. Read it before extracting — the prompt includes
+the full luxury signal taxonomy, exclusion rules, and expected JSON schema.
 
 ### Step Lc — Merge
 
