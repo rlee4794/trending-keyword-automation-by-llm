@@ -320,6 +320,11 @@ engagement), with one-line background per item.
 | LLM extraction fails | Retry once. If still failing, write posts without `extracted` field |
 | Malformed JSON from LLM | Retry once with stricter prompt |
 | Agent uses today's date by mistake | Re-run with correct TARGET_DATE (see Date Convention) |
+| assemble_output.py fails (Step 4) | Check extraction file exists & is valid JSON. If missing, re-run Step 3. If malformed, fix manually. Abort if unrecoverable. |
+| daily_trending.json missing or corrupt (Step 5) | Re-run Step 4 with validated extraction output. If still missing, report which step failed. |
+| export_xlsx.py fails (Step 6) | Check `openpyxl` installed (`pip install openpyxl`). Verify `daily_trending.json` exists. Check write permission on output path. |
+| luxury_extract.py fails (Step La) | Verify `daily_trending.json` exists (pipeline must complete first). Fix JSON if malformed before retrying. |
+| Luxury LLM extraction fails (Step Lb) | Retry once. If still failing, skip luxury insights — pipeline output is still valid. |
 
 ## Step L — Luxury Dining Extraction (on-demand)
 
