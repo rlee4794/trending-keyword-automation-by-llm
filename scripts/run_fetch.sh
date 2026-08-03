@@ -154,12 +154,13 @@ echo "[run_fetch] ${REGION}: ${JOB_COUNT} jobs, max-concurrent=${MAX_CONCURRENT}
 xargs -d '\n' -P "$MAX_CONCURRENT" -I {} bash -c '_run_job "$@"' _ {} < "$JOB_FILE"
 
 # ── Verify all expected outputs ──────────────────────────────────────
+# Use JOB_FILE (not glob) so we catch missing files from failed/timed-out actors.
 
 FAILED=""
-for f in "$RUN_DIR"/*_apify_raw.json; do
-    [ -s "$f" ] && continue
-    FAILED="$FAILED  $(basename "$f")\n"
-done
+while IFS='|' read -r actor_id input_json output_path; do
+    [ -s "$output_path" ] && continue
+    FAILED="$FAILED  $(basename "$output_path")\n"
+done < "$JOB_FILE"
 
 if [ -n "$FAILED" ]; then
     FAILED_COUNT=$(echo -e "$FAILED" | grep -c .)
