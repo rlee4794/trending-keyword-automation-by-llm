@@ -134,24 +134,34 @@ def _build_highlights_sheet(wb: Workbook, highlights: list[tuple[str, str]], dat
     ws.column_dimensions["B"].width = 70
 
 
-def _build_dishes_sheet(wb: Workbook, keywords: list[dict], date: str, region: str, top_n: int) -> None:
+def _build_dishes_sheet(wb: Workbook, keywords: list[dict], posts: list[dict], date: str, region: str, top_n: int) -> None:
     ws = wb.create_sheet("熱門菜式")
     region_label = REGION_LABEL.get(region, region.upper())
 
-    ws.merge_cells("A1:E1")
+    # Build lookup: post index → caption (posts are stored as a list, position is the index)
+    post_caption: dict[int, str] = {}
+    for idx, p in enumerate(posts):
+        cap = p.get("caption_snippet", "") or ""
+        # Use first 300 chars of caption as background detail
+        post_caption[idx] = cap[:300].strip()
+
+    ws.merge_cells("A1:F1")
     ws["A1"] = f"🔥 Social 熱門菜式（按互動熱度，Top {top_n}）"
     ws["A1"].font = TITLE_FONT
     ws.row_dimensions[1].height = 35
 
-    ws.merge_cells("A2:E2")
+    ws.merge_cells("A2:F2")
     ws["A2"] = f"資料來源: Instagram + Threads | 日期: {date} | 地區: {region_label}"
     ws["A2"].font = SUBTITLE_FONT
 
-    _style_header_row(ws, 4, ["關鍵詞", "Concept", "Posts", "Likes", "背景"])
+    _style_header_row(ws, 4, ["關鍵詞", "Concept", "Posts", "Likes", "Shares", "背景 / 帖文摘要"])
 
+    # Sort by engagement (likes + shares)
+    for k in keywords:
+        k["engagement"] = k.get("total_likes", 0) + k.get("total_shares", 0)
     active = sorted(
         [k for k in keywords if k.get("post_count", 0) > 0],
-        key=lambda x: x.get("total_likes", 0),
+        key=lambda x: x["engagement"],
         reverse=True,
     )[:top_n]
 
@@ -160,28 +170,45 @@ def _build_dishes_sheet(wb: Workbook, keywords: list[dict], date: str, region: s
         concept = kw.get("concept", term)
         post_count = kw.get("post_count", 0)
         likes = kw.get("total_likes", 0)
+        shares = kw.get("total_shares", 0)
         sources = kw.get("sources", [])
         source_str = ", ".join(sources[:3]) if sources else ""
 
         display = f"{term} → {concept}" if term != concept else term
 
-        # Build background from sources
-        bg = f"{post_count} 帖提及"
+        # Build background: source + caption snippet from first associated post
+        bg_parts = []
         if source_str:
-            bg += f"，來源: {source_str}"
+            bg_parts.append(f"來源: {source_str}")
+
+        # Get caption from first related post
+        post_indices = kw.get("post_indices", [])
+        if post_indices:
+            first_idx = post_indices[0]
+            cap = post_caption.get(first_idx, "")
+            if cap:
+                # Truncate to ~250 chars for readability
+                cap_short = cap[:250]
+                if len(cap) > 250:
+                    cap_short += "…"
+                bg_parts.append(cap_short)
+
+        bg = " | ".join(bg_parts) if bg_parts else f"{post_count} 帖提及"
 
         _write_cell(ws, i, 1, display)
         _write_cell(ws, i, 2, concept)
         _write_cell(ws, i, 3, post_count, center=True)
         _write_cell(ws, i, 4, f"{likes/1000:.1f}K", center=True)
-        _write_cell(ws, i, 5, bg)
-        ws.row_dimensions[i].height = 28
+        _write_cell(ws, i, 5, f"{shares/1000:.1f}K", center=True)
+        _write_cell(ws, i, 6, bg)
+        ws.row_dimensions[i].height = 55
 
     ws.column_dimensions["A"].width = 38
     ws.column_dimensions["B"].width = 22
     ws.column_dimensions["C"].width = 8
     ws.column_dimensions["D"].width = 10
-    ws.column_dimensions["E"].width = 60
+    ws.column_dimensions["E"].width = 10
+    ws.column_dimensions["F"].width = 70
 
 
 def _build_summary_sheet(wb: Workbook, data: dict, date: str, region: str) -> None:
@@ -241,6 +268,7 @@ def main() -> None:
         data = json.load(f)
 
     keywords = data.get("keywords", [])
+    posts = data.get("posts", [])
 
     # Infer highlights
     highlights = _infer_highlights(keywords)
@@ -248,7 +276,7 @@ def main() -> None:
     # Build workbook
     wb = Workbook()
     _build_highlights_sheet(wb, highlights, args.date, args.region)
-    _build_dishes_sheet(wb, keywords, args.date, args.region, args.top)
+    _build_dishes_sheet(wb, keywords, posts, args.date, args.region, args.top)
     _build_summary_sheet(wb, data, args.date, args.region)
 
     # Output path

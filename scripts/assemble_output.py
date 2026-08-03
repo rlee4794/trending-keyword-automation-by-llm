@@ -287,8 +287,10 @@ def run(date_str: str, region: str, extraction: dict) -> None:
 
     # ── Step 5: Build keyword aggregates ────────────────────────────
     for kw in keywords:
-        indices = kw.pop("post_indices", [])
+        indices = kw.get("post_indices", [])
         kw["post_count"] = len(indices)
+        # Keep post_indices in output so downstream tools (e.g. export_xlsx) can look up captions
+        kw["post_indices"] = indices
         if indices:
             kw["total_likes"] = sum(posts[i]["likes"] for i in indices if i < len(posts))
             kw["total_comments"] = sum(posts[i]["comments"] for i in indices if i < len(posts))
