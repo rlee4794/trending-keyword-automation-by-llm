@@ -47,12 +47,12 @@ All commands must be run from the skill directory (`~/.agents/skills/fnb-trendin
 
 | User says | Action |
 |-----------|--------|
-| "run trending pipeline" / "行trending pipeline" | Full run — **HK only** (Steps 1-4 + Summary, see Date Convention) |
+| "run trending pipeline" / "行trending pipeline" | Full run — **HK only** (Steps 1-6, see Date Convention) |
 | "run trending pipeline --crossday-dedup" | Full run — HK only, **enable 6-day cross-day URL dedup** (remove posts that appeared in previous 6 days) |
 | "run TW pipeline" / "行台灣pipeline" / "行TW" | Full run — **Taiwan only** (IG users + Google Trends TW, see Date Convention) |
 | "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending_HK.json or daily_trending_TW.json` → present Top 10 by category with background |
 | "luxury analysis" / "貴價食材" / "高端餐飲" / "luxury dining" | Run **Step L** (luxury dining signal extraction, on-demand) |
-| "export xlsx" / "export excel" / "匯出 xlsx" | Run **Step 6** (export results to formatted .xlsx workbook) |
+| "export xlsx" / "export excel" / "匯出 xlsx" | Run **Step 6** standalone (re-export from existing daily_trending data) |
 
 ### ⚠️ Output format rule
 
@@ -95,7 +95,7 @@ Step 2: Filter   → filter_threshold.py (like OR share ≥ threshold, mode conf
 Step 3: Extract  → Agent reads filtered posts + Google Trends → extracts keywords
 Step 4: Assemble → assemble_output.py → daily_trending_{REGION}.json
 Step 5: Summary  → Present daily results in chat
-Step 6: Export   → export_xlsx.py → formatted .xlsx workbook (on-demand)
+Step 6: Export   → export_xlsx.py → formatted .xlsx workbook
 
 --- on-demand only (not part of daily pipeline) ---
 
@@ -375,11 +375,9 @@ Manually merge the Agent's JSON into `daily_trending_{REGION}.json`:
 
 This adds a `luxury_insights` field to the daily trending file.
 
-### Step 6 — Export XLSX (on-demand)
+### Step 6 — Export XLSX
 
 Export the daily trending results to a formatted Excel workbook.
-
-**Trigger**: user explicitly asks for "export xlsx" / "export excel" / "匯出 xlsx" / "download xlsx".
 
 **Dependency**: `openpyxl` (Python package). Install with `pip install openpyxl` if missing.
 
