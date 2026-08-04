@@ -187,10 +187,12 @@ def _build_dishes_sheet(wb: Workbook, keywords: list[dict], posts: list[dict], d
             first_idx = post_indices[0]
             cap = post_caption.get(first_idx, "")
             if cap:
-                # Truncate to ~250 chars for readability
-                cap_short = cap[:250]
-                if len(cap) > 250:
-                    cap_short += "…"
+                # Extract ~70 chars, prioritize keeping venue/location context
+                # Strip newlines, collapse whitespace
+                cap_flat = " ".join(cap.replace("\n", " ").split())
+                cap_short = cap_flat[:70]
+                if len(cap_flat) > 70:
+                    cap_short = cap_short.rstrip() + "…"
                 bg_parts.append(cap_short)
 
         bg = " | ".join(bg_parts) if bg_parts else f"{post_count} 帖提及"
@@ -201,14 +203,14 @@ def _build_dishes_sheet(wb: Workbook, keywords: list[dict], posts: list[dict], d
         _write_cell(ws, i, 4, f"{likes/1000:.1f}K", center=True)
         _write_cell(ws, i, 5, f"{shares/1000:.1f}K", center=True)
         _write_cell(ws, i, 6, bg)
-        ws.row_dimensions[i].height = 55
+        ws.row_dimensions[i].height = 30
 
     ws.column_dimensions["A"].width = 38
     ws.column_dimensions["B"].width = 22
     ws.column_dimensions["C"].width = 8
     ws.column_dimensions["D"].width = 10
     ws.column_dimensions["E"].width = 10
-    ws.column_dimensions["F"].width = 70
+    ws.column_dimensions["F"].width = 40
 
 
 def _build_summary_sheet(wb: Workbook, data: dict, date: str, region: str) -> None:
@@ -254,7 +256,7 @@ def main() -> None:
     parser.add_argument("--date", required=True, help="Date (YYYY-MM-DD)")
     parser.add_argument("--region", default="hk", choices=["hk", "tw"], help="Region (default: hk)")
     parser.add_argument("--output", help="Output XLSX path (default: workspace)")
-    parser.add_argument("--top", type=int, default=15, help="Top N dishes to include (default: 15)")
+    parser.add_argument("--top", type=int, default=30, help="Top N dishes to include (default: 30)")
     args = parser.parse_args()
 
     skill_dir = Path(__file__).resolve().parent.parent
