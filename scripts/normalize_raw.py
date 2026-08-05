@@ -239,10 +239,13 @@ def _normalise_instagram_posts(
 
 def _normalise_instagram_user_posts(
     raw_items: list[dict[str, Any]],
-    username: str,
     geo: str = "HK",
 ) -> list[dict[str, Any]]:
     """Convert Instagram user-posts scraper output into pipeline-normalised records.
+
+    Uses ownerUsername from each item as the source username.
+    Handles both old actor format (like_count/comment_count/taken_at_timestamp)
+    and new actor format (likesCount/commentsCount/timestamp).
 
     Args:
         geo: Geo tag for the source ("HK" for Hong Kong, "TW" for Taiwan).
@@ -250,8 +253,11 @@ def _normalise_instagram_user_posts(
     records: list[dict[str, Any]] = []
     for item in raw_items:
         caption = item.get("caption") or ""
-        likes = item.get("like_count", 0) or 0
-        comments = item.get("comment_count", 0) or 0
+        # Support both old and new actor field names
+        likes = item.get("like_count") or item.get("likesCount", 0) or 0
+        comments = item.get("comment_count") or item.get("commentsCount", 0) or 0
+        username = item.get("ownerUsername") or ""
+        taken_at = item.get("taken_at_timestamp") or item.get("taken_at") or item.get("timestamp")
         records.append({
             "raw_term": f"@{username}",
             "source_kind": "user_post",
@@ -262,9 +268,7 @@ def _normalise_instagram_user_posts(
                 "geo": geo,
                 "likes": likes,
                 "comments": comments,
-                "taken_at_timestamp": _normalise_timestamp(
-                    item.get("taken_at_timestamp") or item.get("taken_at")
-                ),
+                "taken_at_timestamp": _normalise_timestamp(taken_at),
                 "hashtags": item.get("hashtags", []),
                 "url": item.get("url"),
                 "reshare_count": item.get("reshare_count"),
@@ -367,12 +371,14 @@ def _process_region(
     if region == "hk":
         all_ig_files = sorted(glob(str(apify_dir / "ig_*_apify_raw.json")))
         # ig_* also matches ig_user_* — exclude user files from hashtag processing
-        ig_hashtag_files = [f for f in all_ig_files if "ig_user_" not in Path(f).stem]
-        ig_user_files = sorted(glob(str(apify_dir / "ig_user_*_apify_raw.json")))
+        ig_hashtag_files = [f for f in all_ig_files if "ig_user" not in Path(f).stem]
+        ig_user_file = str(apify_dir / "ig_users_apify_raw.json")
+        ig_user_files = [ig_user_file] if Path(ig_user_file).exists() else []
     else:
         ig_hashtag_files = []
         ig_user_files = []
-    ig_tw_user_files = sorted(glob(str(apify_dir / "ig_tw_user_*_apify_raw.json"))) if region == "tw" else []
+    ig_tw_user_file = str(apify_dir / "ig_tw_users_apify_raw.json") if region == "tw" else ""
+    ig_tw_user_files = [ig_tw_user_file] if ig_tw_user_file and Path(ig_tw_user_file).exists() else []
 
     if ig_hashtag_files or ig_user_files or ig_tw_user_files:
         age_cutoff = None
@@ -427,9 +433,7 @@ def _process_region(
                 ig_raw_items = json.load(f)
             if not isinstance(ig_raw_items, list):
                 ig_raw_items = []
-            stem = Path(ig_file).stem
-            username = stem.replace("ig_user_", "").replace("_apify_raw", "")
-            records = _normalise_instagram_user_posts(ig_raw_items, username, geo="HK")
+            records = _normalise_instagram_user_posts(ig_raw_items, geo="HK")
             for rec in records:
                 if age_cutoff is not None:
                     taken_at = _parse_timestamp((rec.get("raw_payload") or {}).get("taken_at_timestamp"))
@@ -455,9 +459,7 @@ def _process_region(
                 ig_raw_items = json.load(f)
             if not isinstance(ig_raw_items, list):
                 ig_raw_items = []
-            stem = Path(ig_file).stem
-            username = stem.replace("ig_tw_user_", "").replace("_apify_raw", "")
-            records = _normalise_instagram_user_posts(ig_raw_items, username, geo="TW")
+            records = _normalise_instagram_user_posts(ig_raw_items, geo="TW")
             for rec in records:
                 if age_cutoff is not None:
                     taken_at = _parse_timestamp((rec.get("raw_payload") or {}).get("taken_at_timestamp"))

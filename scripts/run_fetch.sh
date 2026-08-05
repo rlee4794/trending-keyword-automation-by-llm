@@ -123,12 +123,11 @@ if region == 'hk':
 # --- Instagram users ---
 user_cfg = actors['instagram_users']
 users_key = 'instagram_users_taiwan' if region == 'tw' else 'instagram_users'
-file_prefix = 'ig_tw_user_' if region == 'tw' else 'ig_user_'
-for username in social['broad_seeds'][users_key]:
-    inp = dict(user_cfg['input'])
-    inp['username'] = username
-    input_json = json.dumps(inp)
-    jobs.append((user_cfg['actor_id'], input_json, f'{run_dir}/{file_prefix}{username}_apify_raw.json'))
+file_name = 'ig_tw_users_apify_raw.json' if region == 'tw' else 'ig_users_apify_raw.json'
+inp = dict(user_cfg['input'])
+inp['username'] = social['broad_seeds'][users_key]  # inject full array
+input_json = json.dumps(inp)
+jobs.append((user_cfg['actor_id'], input_json, f'{run_dir}/{file_name}'))
 
 # --- Threads (HK only) ---
 if region == 'hk':
