@@ -12,6 +12,9 @@ For each post below, extract:
    **For each dish, also output a `concept`** — a generalized version that strips
    **marketing noise** but keeps **food-attribute modifiers**:
 
+   For **specific (non-aggregate) keywords**: `concept` strips marketing noise from `term`.
+   For **aggregate keywords**: `concept` is the broad category (雪糕, 串燒, 西多士).
+
    | Strip (marketing noise) | Keep (food attributes) |
    |--------------------------|------------------------|
    | Brand names: KFC, 麥當勞, 7-11 | Ingredients: 龍蝦, 和牛, 斑蘭 |
@@ -95,7 +98,9 @@ For each post below, extract:
   不, 的, 了, 是, 在, 有, 和, 都, 就, 也, 會, 要, 可, 好, 食, 飲, 去, 來,
   我, 你, 他, 她, 很, 個, 種, 啲, 嘅, 咁, 仲, 未, 冇, 無, 係, 喺, 俾, 畀,
   令, 將, 但, 只, 已, 更, 最, 又, 或, 與, 及
-- Vague/generic terms: 好味, 美食, 必食, 好食, 好西, 香港, foodie, foodporn, yum
+- Vague/generic terms as standalone per-post dishes: 好味, 美食, 必食, 好食, 好西, 香港, foodie, foodporn, yum.
+  **Exception for aggregate keywords**: category-level terms like 雪糕, 串燒, 西多士, 榴槤, 拉麵
+  are VALID as aggregate keywords when they group multiple specific dish variants across posts.
 - Standalone locations without food context: 北角, 旺角, 中環, mongkok, causeway bay
 - Non-food activities: 唱K, 行山, 打卡, yoga
 - Generic social media tags: hkfood, 香港美食, 相機食先, hkfoodie
@@ -159,6 +164,12 @@ Return ONLY JSON. No markdown, no explanation.
       "post_indices": [0, 3, 7]
     },
     {
+      "term": "雪糕",
+      "concept": "雪糕",
+      "type": "dish",
+      "post_indices": [2, 4, 8, 11, 15]
+    },
+    {
       "term": "壽司郎",
       "type": "venue",
       "post_indices": [1, 4, 5, 8, 12]
@@ -179,6 +190,37 @@ Rules:
 - `keywords[].type` — "dish", "venue", or "cuisine"
 - `keywords[].concept` — **required for `type: "dish"`**, omit for venue/cuisine. Generalized food concept stripped of marketing noise (brands, campaigns, promotional adjectives) but keeping food-attribute modifiers (ingredients, cooking methods, flavors, dish type). Equal to `term` if the dish name is already clean.
 - Google Trends terms: only include if they are **specific F&B proper nouns** — named dishes (至尊漢堡, 大家樂冬瓜盅), named venues (富臨漁港), or named brands (McGriddles, McDonald). Omit generic category words (套餐, 麵包, 榴槤), supermarket/retail names (百佳超級市場), and non-F&B terms entirely. Included terms get `post_indices: []`
+
+### ⚠️ Aggregate Keywords (MANDATORY)
+
+You MUST create **aggregate keywords** that group related specific dishes under a
+common food concept. These are the PRIMARY output for trend reporting — they show
+broad trends, not just individual dish variants.
+
+**How it works:**
+1. Extract specific dish names per post as usual (芫茜雪糕, 大蒜雪糕, 開心果Gelato, 鵝肝雪糕)
+2. Group dishes sharing the same **core food identity** into an aggregate keyword
+3. The aggregate `term` is the most representative/common name (雪糕)
+4. `post_indices` is the UNION of all variant posts (no duplicates)
+5. The aggregate replaces the individual variants in the keywords array
+
+**When to aggregate:**
+- Same base food with different flavors/toppings: 芫茜雪糕 + 大蒜雪糕 + 開心果Gelato + 鵝肝雪糕 → aggregate "雪糕"
+- Same dish type with different proteins/sauces: 沙爹串燒 + 鹽燒多春魚 + 燒雞肉串 + 燒鰻魚肝 → aggregate "串燒"
+- Same dish with different regional/brand variants: 黑芝麻漏奶西多士 + 抹茶漏奶西多士 + 蘋果肉桂西多士 → aggregate "西多士"
+- Same ingredient appearing across dishes: 貓山王榴槤月餅 + D24榴槤卡邦尼 + 榴奶冰 + 榴槤放題 → aggregate "榴槤"
+
+**When NOT to aggregate (keep separate):**
+- Distinct dishes even if same cuisine: 冬陰功 vs 青木瓜沙律 → separate (different dish identity)
+- Different cooking format changes the dish: 鐵板燒鮑魚 vs 酒醉鮑魚 → separate
+- Named signature dishes with strong brand identity: 巴辣雞腿包 (KFC EVA聯乘) → keep separate
+- Dishes with unique concept/format that define their own trend: 拿坡里黑手黨意粉 (Netflix聯乘) → keep separate
+
+**Aggregate term naming:**
+- Use the most common HK Chinese name: 雪糕 not 冰淇淋, 串燒 not 烤串
+- Keep English if that's the dominant term: Omakase, Gelato
+- If a specific variant dominates (>70% of posts), the aggregate `term` can be that variant
+  (e.g. if 15/20 雪糕 posts are 開心果Gelato, term can be "開心果Gelato")
 - Return ONLY the JSON
 
 ---
