@@ -43,9 +43,11 @@
     "dataset_key": "defaultDatasetId",
     "result_format": "dataset_items",
     "input": {
-      "username": "",
-      "scrape_type": "posts",
-      "max_items": 40
+      "dataDetailLevel": "basicData",
+      "onlyPostsNewerThan": "14 days",
+      "resultsLimit": 40,
+      "skipPinnedPosts": true,
+      "username": ["852foodietraveller", "cyanlaii"]
     }
   },
   "threads": {
