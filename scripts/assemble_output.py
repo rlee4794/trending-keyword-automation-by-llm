@@ -233,6 +233,44 @@ def run(date_str: str, region: str, extraction: dict) -> None:
         for fname in disabled_types:
             ext.pop(_field_map.get(fname, fname), None)
 
+    # ── Step 1.4: Geo keyword safety net ───────────────────────────
+    # Override LLM geo classification when strong location keywords exist.
+    # This catches common LLM misclassifications (e.g. Tokyo food tagged HK).
+    GEO_KEYWORDS: list[tuple[str, str]] = [
+        ("JP", "📍東京"), ("JP", "東京最新"), ("JP", "東京超巨大"),
+        ("JP", "Tokyo's"), ("JP", "📍大阪"), ("JP", "📍京都"), ("JP", "📍札幌"),
+        ("JP", "📍沖縄"), ("JP", "📍福岡"), ("JP", "📍名古屋"),
+        ("JP", "📍新宿"), ("JP", "📍渋谷"), ("JP", "📍原宿"),
+        ("JP", "📍銀座"), ("JP", "📍秋葉原"), ("JP", "📍上野"),
+        ("JP", "📍浅草"), ("JP", "📍池袋"), ("JP", "📍六本木"),
+        ("CN", "📍深圳"), ("CN", "📍福田"), ("CN", "📍南山"),
+        ("CN", "📍罗湖"), ("CN", "📍广州"), ("CN", "📍上海"),
+        ("CN", "📍北京"), ("CN", "深圳南山區"),
+        ("TH", "📍曼谷"), ("TH", "曼谷"), ("TH", "📍清邁"),
+        ("TH", "📍布吉"), ("TH", "Bangkok"),
+        ("KR", "📍首爾"), ("KR", "📍釜山"), ("KR", "📍明洞"),
+        ("KR", "📍弘大"), ("KR", "📍江南"),
+        ("TW", "📍台北"), ("TW", "📍台中"), ("TW", "📍台南"),
+        ("TW", "📍高雄"), ("TW", "NT$"),
+        ("SG", "📍新加坡"), ("SG", "Singapore"),
+        ("MO", "📍澳門"), ("MO", "📍氹仔"),
+        ("MY", "📍吉隆坡"), ("MY", "📍檳城"),
+    ]
+    geo_overridden = 0
+    for p in posts:
+        caption = p.get("caption_snippet", "") or ""
+        current_geo = p.get("geo_by_content")
+        for geo_code, keyword in GEO_KEYWORDS:
+            if keyword.lower() in caption.lower():
+                if current_geo != geo_code:
+                    p["geo_by_content"] = geo_code
+                    geo_overridden += 1
+                    cap = caption[:80]
+                    print(f"🛡️  GEO GUARD: {current_geo} → {geo_code} | keyword='{keyword}' | {cap}...", file=sys.stderr)
+                break
+    if geo_overridden > 0:
+        print(f"🛡️  GEO GUARD: overrode {geo_overridden} geo_by_content tag(s)", file=sys.stderr)
+
     # ── Step 1.5: Filter geo_mismatch posts ─────────────────────────
     expected_geo = region.upper()  # "HK" or "TW"
     geo_filtered: list[dict] = []

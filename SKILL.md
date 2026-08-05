@@ -50,7 +50,7 @@ All commands must be run from the skill directory (`~/.agents/skills/fnb-trendin
 | "run trending pipeline" / "行trending pipeline" | Full run — **HK only** (Steps 1-6, see Date Convention) |
 | "run trending pipeline --crossday-dedup" | Full run — HK only, **enable 6-day cross-day URL dedup** (remove posts that appeared in previous 6 days) |
 | "run TW pipeline" / "行台灣pipeline" / "行TW" | Full run — **Taiwan only** (IG users + Google Trends TW, see Date Convention) |
-| "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending_HK.json or daily_trending_TW.json` → present Top 10 by category with background |
+| "show trends for YYYY-MM-DD" | Read `runs/YYYY-MM-DD/daily_trending_HK.json or daily_trending_TW.json` → present Top 30 by category with background |
 | "luxury analysis" / "貴價食材" / "高端餐飲" / "luxury dining" | Run **Step L** (luxury dining signal extraction, on-demand) |
 | "export xlsx" / "export excel" / "匯出 xlsx" | Run **Step 6** standalone (re-export from existing daily_trending data) |
 
@@ -308,7 +308,7 @@ not a data dump.
 
 Read `docs/presentation.md` for full table templates, background extraction
 rules, concept display conventions, and Google related_terms formatting.
-Present each enabled category as a markdown table (Top 10, sorted by
+Present each enabled category as a markdown table (Top 30, sorted by
 engagement), with one-line background per item.
 
 ## Edge Cases

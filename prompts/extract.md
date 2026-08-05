@@ -52,21 +52,38 @@ For each post below, extract:
 
 4. **geo_by_content** (必須) — where the food/venue is physically located.
    Output a **free-form location tag**, NOT a yes/no bucket.
-   - `"HK"` — clearly Hong Kong (香港地名、港式用語、香港分店、$HKD 標價)
-   - `"TW"` — clearly Taiwan (台灣地名如一中街/逢甲/西門町、台灣手機格式 09xx-xxx-xxx、
+
+   **⚠️ CRITICAL: The food's physical location determines geo. NOT the author, NOT the language, NOT the hashtags.**
+
+   - `"HK"` — food/venue is IN Hong Kong (香港地名、港式用語、香港分店、$HKD 標價)
+   - `"TW"` — food/venue is IN Taiwan (台灣地名如一中街/逢甲/西門町、台灣手機格式 09xx-xxx-xxx、
      台灣分店命名如XX店/XX分店、台幣 NT$ 標價、台灣特有品牌)
-   - `"JP"` — Japan (大阪、東京、京都、札幌、沖繩…)
-   - `"KR"` — Korea (首爾、釜山、明洞…)
-   - `"TH"` — Thailand (曼谷、清邁、布吉…)
-   - `"MO"` — Macau
-   - `"CN"` — Mainland China (深圳、上海、北京…)
-   - `"SG"` — Singapore
-   - `"MY"` — Malaysia
+   - `"JP"` — food/venue is IN Japan (大阪、東京、京都、札幌、沖縄、📍東京…)
+   - `"KR"` — food/venue is IN Korea (首爾、釜山、明洞…)
+   - `"TH"` — food/venue is IN Thailand (曼谷、清邁、布吉…)
+   - `"MO"` — food/venue is IN Macau
+   - `"CN"` — food/venue is IN Mainland China (深圳、上海、北京…)
+   - `"SG"` — food/venue is IN Singapore
+   - `"MY"` — food/venue is IN Malaysia
    - `null` — truly cannot determine (e.g. pure food photo with no location clues)
 
-   Use ISO 3166-1 alpha-2 country codes where possible.
+   **Red flags that mean NOT HK (common pitfall):**
+   - "📍東京" anywhere in caption → `"JP"` (Tokyo = Japan, always)
+   - "東京最新" / "東京超巨大" / "Tokyo's" / "Tokyo" → `"JP"`
+   - "📍大阪" / "📍京都" / "📍札幌" → `"JP"`
+   - ¥ (yen) pricing with Japanese location → `"JP"`
+   - NT$ pricing → `"TW"`
+   - 深圳地名 (福田/南山/羅湖/宝安) → `"CN"`
+   - 曼谷/曼谷地名 → `"TH"`
+
+   **HK indicators (only tag HK if food IS in HK):**
+   - HKD pricing, 香港地名, 港式用語, 香港分店地址
+   - $XX蚊, HK$XX, 港幣
+
    If a post mentions both regions (e.g. "香港人去台北食XXX"),
    classify by where the FOOD is served, not the author's location.
+   If a post says "傳給你想一起去東京旅行的人" or "傳給想去東京的",
+   the food IS in Tokyo → `"JP"`.
 
 **DO NOT extract:**
 - Single characters as venues or dishes — minimum 2 characters required.
