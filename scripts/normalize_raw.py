@@ -621,8 +621,8 @@ def main() -> None:
     parser.add_argument("--run-dir", required=True, help="Run directory (e.g. runs/2026-06-25)")
     parser.add_argument("--config", required=True, help="Path to social_listening_v1.json")
     parser.add_argument("--region", choices=["hk", "tw"], help="Process only this region (default: both)")
-    parser.add_argument("--max-age-days", type=int, default=30,
-                        help="Discard Instagram posts older than N days (default: 30, 0 = disable)")
+    parser.add_argument("--max-age-days", type=int, default=14,
+                        help="Discard Instagram posts older than N days (default: 14, 0 = disable)")
     parser.add_argument("--crossday-dedup", action="store_true",
                         help="Enable cross-day URL dedup (look back 6 days, in-run source_kind merge always active)")
     args = parser.parse_args()
