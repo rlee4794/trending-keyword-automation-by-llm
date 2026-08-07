@@ -438,7 +438,7 @@ The workbook contains three sheets:
 | Sheet | Content |
 |-------|---------|
 | **本日要點** | Auto-inferred daily highlights (signal + description) |
-| **熱門菜式** | Top N dish keywords with term→concept, post count, likes, source background |
+| **熱門菜式** | Top N dish keywords with term→concept, post count, likes, curated background (from Step 4.5) |
 | **原始數據摘要** | Pipeline execution summary (date, thresholds, post counts, status) |
 
 Output path defaults to `~/.openclaw/workspace/{REGION}_FB_Trending_{DATE}.xlsx`.

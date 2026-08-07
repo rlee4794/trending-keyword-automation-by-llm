@@ -151,7 +151,7 @@ def _build_dishes_sheet(wb: Workbook, keywords: list[dict], posts: list[dict], d
     ws.row_dimensions[1].height = 35
 
     ws.merge_cells("A2:F2")
-    ws["A2"] = f"資料來源: Instagram + Threads | 日期: {date} | 地區: {region_label}"
+    ws["A2"] = f"背景資料由 Step 4.5 生成 | 日期: {date} | 地區: {region_label}"
     ws["A2"].font = SUBTITLE_FONT
 
     _style_header_row(ws, 4, ["關鍵詞", "Concept", "Posts", "Likes", "Shares", "背景 / 帖文摘要"])
@@ -176,26 +176,30 @@ def _build_dishes_sheet(wb: Workbook, keywords: list[dict], posts: list[dict], d
 
         display = f"{term} → {concept}" if term != concept else term
 
-        # Build background: source + caption snippet from first associated post
-        bg_parts = []
-        if source_str:
-            bg_parts.append(f"來源: {source_str}")
+        # Build background: prefer curated background from Step 4.5, fallback to caption excerpt
+        curated = kw.get("background", "").strip()
+        if curated:
+            bg = curated
+        else:
+            bg_parts = []
+            if source_str:
+                bg_parts.append(f"來源: {source_str}")
 
-        # Get caption from first related post
-        post_indices = kw.get("post_indices", [])
-        if post_indices:
-            first_idx = post_indices[0]
-            cap = post_caption.get(first_idx, "")
-            if cap:
-                # Extract ~70 chars, prioritize keeping venue/location context
-                # Strip newlines, collapse whitespace
-                cap_flat = " ".join(cap.replace("\n", " ").split())
-                cap_short = cap_flat[:70]
-                if len(cap_flat) > 70:
-                    cap_short = cap_short.rstrip() + "…"
-                bg_parts.append(cap_short)
+            # Get caption from first related post
+            post_indices = kw.get("post_indices", [])
+            if post_indices:
+                first_idx = post_indices[0]
+                cap = post_caption.get(first_idx, "")
+                if cap:
+                    # Extract ~70 chars, prioritize keeping venue/location context
+                    # Strip newlines, collapse whitespace
+                    cap_flat = " ".join(cap.replace("\n", " ").split())
+                    cap_short = cap_flat[:70]
+                    if len(cap_flat) > 70:
+                        cap_short = cap_short.rstrip() + "…"
+                    bg_parts.append(cap_short)
 
-        bg = " | ".join(bg_parts) if bg_parts else f"{post_count} 帖提及"
+            bg = " | ".join(bg_parts) if bg_parts else f"{post_count} 帖提及"
 
         _write_cell(ws, i, 1, display)
         _write_cell(ws, i, 2, concept)
