@@ -98,6 +98,8 @@ Step 4.5: Background → Agent generates curated 50-70 char backgrounds for each
 Step 5: Summary  → Read daily_trending_{REGION}.json → present in chat (use curated backgrounds from Step 4.5)
 Step 6: Export   → export_xlsx.py → formatted .xlsx workbook (reads keyword.background from Step 4.5)
 
+⚠️ Step 6 is MANDATORY after Step 5. Agent must run it without asking.
+
 --- on-demand only (not part of daily pipeline) ---
 
 Step L: Luxury  → luxury_extract.py (format prompt) → Agent (semantic extraction) →
@@ -361,7 +363,7 @@ engagement), with one-line background per item.
 | Agent uses today's date by mistake | Re-run with correct TARGET_DATE (see Date Convention) |
 | assemble_output.py fails (Step 4) | Check extraction file exists & is valid JSON. If missing, re-run Step 3. If malformed, fix manually. Abort if unrecoverable. |
 | daily_trending.json missing or corrupt (Step 5) | Re-run Step 4 with validated extraction output. If still missing, report which step failed. |
-| export_xlsx.py fails (Step 6) | Check `openpyxl` installed (`pip install openpyxl`). Verify `daily_trending.json` exists. Check write permission on output path. |
+| export_xlsx.py fails (Step 6) | Step 6 is mandatory — retry once. Check `openpyxl` installed (`pip install openpyxl`). Verify `daily_trending.json` exists. Check write permission on output path. If still failing, report error and output path. |
 | luxury_extract.py fails (Step La) | Verify `daily_trending.json` exists (pipeline must complete first). Fix JSON if malformed before retrying. |
 | Luxury LLM extraction fails (Step Lb) | Retry once. If still failing, skip luxury insights — pipeline output is still valid. |
 
@@ -415,6 +417,9 @@ Manually merge the Agent's JSON into `daily_trending_{REGION}.json`:
 This adds a `luxury_insights` field to the daily trending file.
 
 ### Step 6 — Export XLSX
+
+**⚠️ MANDATORY**: After Step 5 completes, immediately run Step 6 without asking.
+This is a required pipeline step, not optional. Do NOT skip it.
 
 Export the daily trending results to a formatted Excel workbook.
 
