@@ -94,8 +94,9 @@ Step 1: Fetch    → run_fetch.sh (xargs -P 30) → normalize_raw.py
 Step 2: Filter   → filter_threshold.py (like OR share ≥ threshold, mode configurable)
 Step 3: Extract  → Agent reads filtered posts + Google Trends → extracts keywords
 Step 4: Assemble → assemble_output.py → daily_trending_{REGION}.json
-Step 5: Summary  → Present daily results in chat
-Step 6: Export   → export_xlsx.py → formatted .xlsx workbook
+Step 4.5: Background → Agent generates curated 50-70 char backgrounds for each keyword → writes back to daily_trending_{REGION}.json
+Step 5: Summary  → Read daily_trending_{REGION}.json → present in chat (use curated backgrounds from Step 4.5)
+Step 6: Export   → export_xlsx.py → formatted .xlsx workbook (reads keyword.background from Step 4.5)
 
 --- on-demand only (not part of daily pipeline) ---
 
@@ -264,9 +265,47 @@ The assembly script handles:
 - Keyword aggregation with engagement stats
 - Writing `daily_trending_{REGION}.json` + updating `runs/latest` symlink
 
+### Step 4.5 — Generate Curated Backgrounds (Agent)
+
+After Step 4 produces `daily_trending_{REGION}.json`, the Agent **must** generate
+curated backgrounds for each keyword before proceeding to Step 5 or Step 6.
+
+**Why this step exists**: Step 5 markdown tables and Step 6 XLSX both need
+50-70 character backgrounds that include restaurant names, context, and
+characteristics. Raw caption excerpts are unreliable (restaurant names may
+be in hashtags, mid-caption, or absent from the first 70 chars). Generating
+curated backgrounds once and embedding them in `keywords[].background`
+ensures consistency across all downstream outputs.
+
+**Procedure**:
+
+1. Read `daily_trending_{REGION}.json`
+2. For each keyword with `post_count > 0`:
+   - Find associated posts via `post_indices` or `sources`
+   - Read each post's `caption_snippet`, `source`, and `extracted` fields
+   - Synthesize a **50-70 character** (CJK count) curated background
+   - Format: `[{source}] {餐廳名} {context}，{特色/反應}`
+   - Store in `keywords[].background`
+3. Re-save `daily_trending_{REGION}.json` with backgrounds embedded
+
+**Background writing rules**:
+- **50-70 CJK characters**, one line per keyword — no truncation mid-sentence
+- **Must include restaurant/venue name**. If no specific name in captions,
+  use district + type (e.g. "大角咀街坊麵包店", "銅鑼灣樓上Cafe")
+- **Must include context**: why trending? (聯乘/新開/限時/排隊/口碑/跨平台/節日)
+- **Must include key characteristic or reaction** (e.g. "爆餡排隊人龍",
+  "Threads 熱議", "$62 套餐送角色卡")
+- When `term != concept`, describe the dish using the concept as subject
+- Use the most informative `source` as prefix (prefer @username over #hashtag)
+
+Read `docs/presentation.md` § Step 4.5 for detailed prompt template.
+
 ### Step 5 — Present Summary
 
 Show a detailed summary in chat, in two parts.
+
+**Backgrounds**: Use the curated `keywords[].background` field from Step 4.5.
+Do NOT generate new backgrounds on-the-fly during Step 5.
 
 **Step 5 follows `extraction_scope` from `config/threshold.json`** — only display
 categories whose corresponding scope key is `true`. For example, if `venues: false`,

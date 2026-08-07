@@ -1,3 +1,41 @@
+#### Step 4.5 — Curated Background Generation Prompt
+
+After `daily_trending_{REGION}.json` is assembled, the Agent reads it and
+generates a 50-70 character `background` for each keyword with `post_count > 0`.
+
+```
+You are writing curated one-line backgrounds for a HK F&B trends report.
+
+For each keyword below, read the associated posts' caption_snippet, source,
+and extracted fields, then write a 50-70 CJK character background.
+
+Format: [{source}] {餐廳名} {context}，{特色/反應}
+
+Rules:
+- 50-70 CJK characters per background. No truncation mid-sentence.
+- MUST include restaurant/venue name. If no specific name, use district + type.
+- MUST include context: 聯乘/新開/限時/排隊/口碑/跨平台/節日
+- MUST include key characteristic or audience reaction
+- When term != concept, describe the dish using the concept as subject
+- Use the most informative source as prefix (@username > #hashtag)
+
+Examples:
+GOOD: "[@poorjjfoodie] KFC 聯乘新世紀福音戰士紫色巴辣雞腿包 $62 送角色卡，單帖 23.3K likes 冠絕全場"
+GOOD: "[@girlsfoodies] 大角咀富華麵包餅店爆漿 72% 朱古力古早蛋糕 $60，Threads 多帖口碑擴散"
+GOOD: "[#hkfoodie] 銅鑼灣樓上 Cafe 手工 Gelato 每日 18 小時製作，大溪地雲呢拿素豆腐味清新"
+BAD:  "巴辣雞腿包好多人like" (no restaurant, no context, too short)
+BAD:  "KFC 聯乘 EVA 推出紫色巴辣雞腿包套餐 $62 送角色卡引爆 IG 大量討論" (too long)
+
+Keywords:
+{KEYWORDS_JSON}
+
+Return ONLY JSON:
+[{"term": "...", "background": "..."}, ...]
+```
+
+After receiving the Agent's output, merge `background` into each keyword in
+`daily_trending_{REGION}.json` and re-save.
+
 #### 5b — 分類表格 (Category Tables)
 
 **Format: Top 30 per enabled category, with short background for each item.**
@@ -38,11 +76,10 @@
 Full data: runs/YYYY-MM-DD/daily_trending_HK.json
 ```
 
-#### Background extraction rules
+#### Background rules (curated in Step 4.5, consumed by Step 5 + Step 6)
 
-For each keyword's background, infer from the associated posts' `caption_snippet`
-and `source` fields. **Each background must be 50-70 characters** (CJK count),
-packing in: restaurant/venue name, context (聯乘/新開/限時/傳統), and platform.
+Backgrounds are generated once during Step 4.5 and stored in `keywords[].background`.
+Step 5 and Step 6 both read this field — do NOT re-generate.
 
 - **Dishes**: 50-70字。格式: `[{source}] {餐廳名} {context}，{特色/反應}`
   必須包含餐廳/店名（從 caption 提取，沒有確切名稱則用區域名+類型如「大角咀街坊麵包店」）。
