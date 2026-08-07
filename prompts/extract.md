@@ -161,15 +161,13 @@ Return ONLY JSON. No markdown, no explanation.
       "term": "沙嗲拼盤",
       "concept": "沙嗲拼盤",
       "type": "dish",
-      "post_indices": [0, 3, 7],
-      "background": "[#hkfoodie] 北角串燒店 隱世小店，沙嗲拼盤配燒蠔，街坊熱捧"
+      "post_indices": [0, 3, 7]
     },
     {
       "term": "雪糕",
       "concept": "雪糕",
       "type": "dish",
-      "post_indices": [2, 4, 8, 11, 15],
-      "background": "[@foodiehk] IKEA 美食站 新品，牛油年糕＋布甸乳酪雪糕引熱議"
+      "post_indices": [2, 4, 8, 11, 15]
     },
     {
       "term": "壽司郎",
@@ -191,29 +189,7 @@ Rules:
 - `keywords[].post_indices` — which posts mention this keyword (0-based)
 - `keywords[].type` — "dish", "venue", or "cuisine"
 - `keywords[].concept` — **required for `type: "dish"`**, omit for venue/cuisine. Generalized food concept stripped of marketing noise (brands, campaigns, promotional adjectives) but keeping food-attribute modifiers (ingredients, cooking methods, flavors, dish type). Equal to `term` if the dish name is already clean.
-- `keywords[].background` — **required for `type: "dish"`**, omit for venue/cuisine. A one-line summary (50-70 CJK characters) describing the trend context. See **Background Format** below.
 - Google Trends terms: only include if they are **specific F&B proper nouns** — named dishes (至尊漢堡, 大家樂冬瓜盅), named venues (富臨漁港), or named brands (McGriddles, McDonald). Omit generic category words (套餐, 麵包, 榴槤), supermarket/retail names (百佳超級市場), and non-F&B terms entirely. Included terms get `post_indices: []`
-
-### Background Format（dish keywords only）
-
-Each dish keyword MUST include a `background` string — a one-line summary (50-70 CJK chars) for the trend report. Format:
-
-`[{source}] {餐廳名} {context}，{特色/反應}`
-
-Rules:
-- **source**: Pick the most informative source from the keyword's posts — prefer user handles (`@foodiehk`) over generic hashtags (`#hkfood`). If no good source, use a district name or omit.
-- **餐廳名**: Extract the restaurant/shop name from the post caption. If no specific venue is named, use the district + type (e.g. "大角咀街坊麵包店", "銅鑼灣新開cafe"). Must be present.
-- **context**: Key context words — 聯乘、新開、限定、任食、米芝蓮、老字號、酒店級、創意、抵食、排隊、隱世、新品. Infer from the caption. Can combine 2-3 short labels (e.g. "聯乘限定", "新開抵食").
-- **特色/反應**: The dish's standout feature or audience reaction — keep it tight. Examples: "紫色包皮引爆社交媒體", "$62 套餐送角色卡", "午市任食酒香咖啡香濃郁", "街坊熱捧"
-
-**Examples:**
-- `"[@poorjjfoodie] KFC 聯乘限定，紫色初號機巴辣雞腿包 $62 送角色卡引爆 IG"`
-- `"[尖沙咀] Angelini 酒店級任食，Tiramisu 席前即 scoop 酒香咖啡香濃郁"`
-- `"[海港城] 文記車仔麵 米芝蓮新開，$22 起進駐 Food Atlas 全城熱議"`
-- `"[@lemonmediahk] 美食博覽 限定煙韌市集，麻糬波堤糯米滋一次過集結"`
-- `"[大角咀] 富華麵包餅店 街坊小店，爆漿朱古力古早蛋糕 $60 超邪惡"`
-
-**Length**: Must be 50-70 CJK characters. If the keyword appears in multiple posts, synthesize the most representative context — don't just copy one post's caption.
 
 ### ⚠️ Aggregate Keywords (MANDATORY)
 
