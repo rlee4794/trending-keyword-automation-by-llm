@@ -33,6 +33,16 @@ Return ONLY JSON:
 [{"term": "...", "background": "..."}, ...]
 ```
 
+**⚠️ Token guard**: When formatting `{KEYWORDS_JSON}`, include ONLY:
+- Each keyword's `term`, `concept`, `post_indices`, `sources`
+- For each keyword, inline ONLY the `caption_snippet` and `source` of posts
+  referenced by its `post_indices` (NOT all posts in the file)
+- A typical run has ~30-40 keywords referencing ~2-4 posts each → ~60-120
+  post snippets total. Do NOT include all 100+ posts.
+
+Output: one `background` per keyword with `post_count > 0` (~30-40 lines).
+Do NOT generate backgrounds for individual posts.
+
 After receiving the Agent's output, merge `background` into each keyword in
 `daily_trending_{REGION}.json` and re-save.
 

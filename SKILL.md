@@ -302,6 +302,11 @@ ensures consistency across all downstream outputs.
 
 Read `docs/presentation.md` § Step 4.5 for detailed prompt template.
 
+**⚠️ Token guard**: When formatting the prompt for Step 4.5, include ONLY the
+keywords (term, concept, post_indices, sources) + the caption_snippet and source
+of posts referenced by each keyword's post_indices. Do NOT include all posts.
+Output: one background per keyword (~30-40 lines), NOT per post (~100+).
+
 ### Step 5 — Present Summary
 
 Show a detailed summary in chat, in two parts.
